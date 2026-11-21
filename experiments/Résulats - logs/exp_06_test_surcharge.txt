@@ -1,0 +1,162 @@
+[BLE] Connexion à la prise 94:a9:a8:1a:37:0c...
+[BLE] Connecté !
+[BLE] Authentifié avec succès !
+
+================================================================================
+ >>> STREAMING DÉMARRÉ — Word0 initial : 5318 mA (~1223.1 W sous 230V)
+     1. Branchez votre charge et montez la puissance au-dessus de 1234 W.
+     2. Observez la coupure (disjonction de protection).
+     3. Éteignez votre appareil, réarmez la prise et re-consommez un peu.
+     4. Appuyez sur le bouton physique BOOT pour stopper le test.
+================================================================================
+
+[LIVE] Relais: ON  | P:    0.0 W | U: 226 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 226 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 226 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 226 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 226 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 226 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 226 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 226 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 226 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 227 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 228 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 228 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 228 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 229 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 229 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 229 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 228 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 229 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  109.3 W | U: 230 V | I_mesuré: 0.583 A ( 583 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   87.6 W | U: 230 V | I_mesuré: 0.447 A ( 447 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   84.2 W | U: 230 V | I_mesuré: 0.430 A ( 430 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   84.0 W | U: 230 V | I_mesuré: 0.429 A ( 429 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   84.1 W | U: 230 V | I_mesuré: 0.429 A ( 429 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   83.6 W | U: 230 V | I_mesuré: 0.427 A ( 427 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   83.5 W | U: 230 V | I_mesuré: 0.427 A ( 427 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   83.2 W | U: 229 V | I_mesuré: 0.425 A ( 425 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   83.1 W | U: 229 V | I_mesuré: 0.425 A ( 425 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   83.2 W | U: 229 V | I_mesuré: 0.425 A ( 425 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   83.3 W | U: 230 V | I_mesuré: 0.425 A ( 425 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   83.2 W | U: 230 V | I_mesuré: 0.424 A ( 424 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   82.8 W | U: 230 V | I_mesuré: 0.423 A ( 423 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   82.7 W | U: 230 V | I_mesuré: 0.422 A ( 422 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   82.7 W | U: 230 V | I_mesuré: 0.422 A ( 422 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   82.3 W | U: 229 V | I_mesuré: 0.421 A ( 421 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   82.3 W | U: 229 V | I_mesuré: 0.421 A ( 421 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  236.5 W | U: 229 V | I_mesuré: 1.627 A (1627 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  494.4 W | U: 228 V | I_mesuré: 2.386 A (2386 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  490.7 W | U: 227 V | I_mesuré: 2.374 A (2374 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  491.8 W | U: 227 V | I_mesuré: 2.377 A (2377 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  492.2 W | U: 228 V | I_mesuré: 2.379 A (2379 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  487.4 W | U: 227 V | I_mesuré: 2.366 A (2366 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  483.9 W | U: 226 V | I_mesuré: 2.358 A (2358 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  484.3 W | U: 226 V | I_mesuré: 2.359 A (2359 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  486.4 W | U: 226 V | I_mesuré: 2.364 A (2364 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  487.0 W | U: 226 V | I_mesuré: 2.365 A (2365 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  489.3 W | U: 227 V | I_mesuré: 2.370 A (2370 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  489.4 W | U: 227 V | I_mesuré: 2.371 A (2371 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  949.2 W | U: 226 V | I_mesuré: 4.217 A (4217 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  946.4 W | U: 226 V | I_mesuré: 4.201 A (4201 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  944.3 W | U: 226 V | I_mesuré: 4.195 A (4195 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  933.6 W | U: 224 V | I_mesuré: 4.170 A (4170 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  932.8 W | U: 224 V | I_mesuré: 4.168 A (4168 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  932.5 W | U: 224 V | I_mesuré: 4.167 A (4167 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  932.7 W | U: 224 V | I_mesuré: 4.167 A (4167 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  932.8 W | U: 224 V | I_mesuré: 4.167 A (4167 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  925.5 W | U: 224 V | I_mesuré: 4.150 A (4150 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  928.1 W | U: 224 V | I_mesuré: 4.156 A (4156 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  931.1 W | U: 224 V | I_mesuré: 4.163 A (4163 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  931.1 W | U: 224 V | I_mesuré: 4.162 A (4162 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  926.5 W | U: 224 V | I_mesuré: 4.152 A (4152 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P: 1708.7 W | U: 223 V | I_mesuré: 7.697 A (7697 mA) | Word0 (I_max):  5318 mA <<<DÉPASSEMENT SEUIL !
+[LIVE] Relais: ON  | P: 1709.1 W | U: 223 V | I_mesuré: 7.698 A (7698 mA) | Word0 (I_max):  5318 mA <<<DÉPASSEMENT SEUIL !
+[LIVE] Relais: ON  | P: 1707.8 W | U: 223 V | I_mesuré: 7.692 A (7692 mA) | Word0 (I_max):  5318 mA <<<DÉPASSEMENT SEUIL !
+
+********************************************************************************
+ !!! ALERTE : COUPURE PAR SURCHARGE DÉTECTÉE ! LE RELAIS S'EST OUVERT (OFF) !!! 
+     Puissance juste avant coupure : 1706.6 W | Courant mesuré : 7.688 A
+     État de Word0 à la coupure : 0x14C6 (5318 mA)
+********************************************************************************
+
+[LIVE] Relais: OFF | P: 1706.6 W | U: 223 V | I_mesuré: 7.688 A (7688 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 223 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 225 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 226 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 226 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 226 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 226 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 226 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 226 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 226 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 226 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 225 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 225 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 226 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 226 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 226 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 226 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 226 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 226 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 226 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 226 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: OFF | P:    0.0 W | U: 226 V | I_mesuré: 0.000 A (   0 mA) | Word0 (I_max):  5318 mA
+
+********************************************************************************
+ >>> RÉARMEMENT DÉTECTÉ : LE RELAIS EST DE NOUVEAU FERMÉ (ON) !               
+     État de Word0 au réarmement : 0x14C6 (5318 mA)
+********************************************************************************
+
+[LIVE] Relais: ON  | P:    0.0 W | U: 226 V | I_mesuré: 0.012 A (  12 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 226 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 226 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 226 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 226 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 226 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 226 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 226 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 225 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 225 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 225 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 225 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 225 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.8 W | U: 224 V | I_mesuré: 0.066 A (  66 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   59.7 W | U: 224 V | I_mesuré: 0.491 A ( 491 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   85.8 W | U: 223 V | I_mesuré: 0.450 A ( 450 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   77.2 W | U: 224 V | I_mesuré: 0.404 A ( 404 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   77.4 W | U: 224 V | I_mesuré: 0.404 A ( 404 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  340.6 W | U: 224 V | I_mesuré: 2.031 A (2030 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  470.6 W | U: 224 V | I_mesuré: 2.339 A (2339 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  476.0 W | U: 224 V | I_mesuré: 2.334 A (2334 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  476.6 W | U: 224 V | I_mesuré: 2.336 A (2336 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  476.8 W | U: 224 V | I_mesuré: 2.336 A (2336 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  476.8 W | U: 224 V | I_mesuré: 2.336 A (2336 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  476.6 W | U: 224 V | I_mesuré: 2.336 A (2336 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  476.6 W | U: 224 V | I_mesuré: 2.336 A (2336 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  928.1 W | U: 224 V | I_mesuré: 4.165 A (4165 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  926.8 W | U: 224 V | I_mesuré: 4.153 A (4153 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  930.7 W | U: 224 V | I_mesuré: 4.161 A (4161 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  930.3 W | U: 224 V | I_mesuré: 4.160 A (4160 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  929.4 W | U: 224 V | I_mesuré: 4.157 A (4157 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:  485.8 W | U: 225 V | I_mesuré: 2.457 A (2457 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   10.6 W | U: 226 V | I_mesuré: 0.581 A ( 581 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:   10.6 W | U: 225 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 225 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 227 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 227 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 227 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 228 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 228 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 228 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 228 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 228 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 229 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 229 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 229 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+[LIVE] Relais: ON  | P:    0.0 W | U: 229 V | I_mesuré: 0.014 A (  14 mA) | Word0 (I_max):  5318 mA
+
+================================================================================
+ >>> BOUTON BOOT DÉTECTÉ : ARRÊT DU TEST DEMANDÉ PAR L'UTILISATEUR              
+================================================================================
+[BLE] Prise déconnectée proprement. Fin de l'expérience 06.

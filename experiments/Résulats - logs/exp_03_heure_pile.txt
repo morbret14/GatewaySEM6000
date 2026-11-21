@@ -1,0 +1,191 @@
+================================================================================
+ ÉTAPE 1 : LECTURE DE L'ÉTAT INITIAL (BASELINE)
+================================================================================
+[BLE] Connexion à la prise 94:a9:a8:1a:37:0c...
+[BLE] Connecté !
+[BLE] Authentifié avec succès !
+  [TÉLÉMESURE 0x0400]
+    Relais : ON | Tension : 233 V | Fréquence : 50 Hz
+    Puissance active : 0.000 W | Courant : 0.014 A
+    totalKwhWh brut : 0 (0x00000000)
+  [DIAGNOSTIC FFF2]
+    Word0 : 0x1483 (5251) | Courant brut : 0.014 A (octet2: 0x00)
+  [HISTORIQUE HORAIRE - 24H (Wh)]
+    Slot [00] (H-23)             :     0 Wh
+    Slot [01] (H-22)             :     0 Wh
+    Slot [02] (H-21)             :     0 Wh
+    Slot [03] (H-20)             :     0 Wh
+    Slot [04] (H-19)             :     0 Wh
+    Slot [05] (H-18)             :     0 Wh
+    Slot [06] (H-17)             :     0 Wh
+    Slot [07] (H-16)             :     0 Wh
+    Slot [08] (H-15)             :     0 Wh
+    Slot [09] (H-14)             :     0 Wh
+    Slot [10] (H-13)             :     0 Wh
+    Slot [11] (H-12)             :     0 Wh
+    Slot [12] (H-11)             :     0 Wh
+    Slot [13] (H-10)             :     0 Wh
+    Slot [14] (H-09)             :     0 Wh
+    Slot [15] (H-08)             :     0 Wh
+    Slot [16] (H-07)             :     0 Wh
+    Slot [17] (H-06)             :     0 Wh
+    Slot [18] (H-05)             :     0 Wh
+    Slot [19] (H-04)             :     0 Wh
+    Slot [20] (H-03)             :     0 Wh
+    Slot [21] (H-02)             :     0 Wh
+    Slot [22] (H-01) [H-1]       :     0 Wh
+    Slot [23] (H-00) [EN COURS]  :    62 Wh
+  [HISTORIQUE JOURNALIER - 30 JOURS (Wh)]
+    Slot [00] (J-29)                :       0 Wh
+    Slot [01] (J-28)                :       0 Wh
+    Slot [02] (J-27)                :       0 Wh
+    Slot [03] (J-26)                :       0 Wh
+    Slot [04] (J-25)                :       0 Wh
+    Slot [05] (J-24)                :       0 Wh
+    Slot [06] (J-23)                :       0 Wh
+    Slot [07] (J-22)                :       0 Wh
+    Slot [08] (J-21)                :       0 Wh
+    Slot [09] (J-20)                :       2 Wh
+    Slot [10] (J-19)                :       0 Wh
+    Slot [11] (J-18)                :       5 Wh
+    Slot [12] (J-17)                :      31 Wh
+    Slot [13] (J-16)                :      41 Wh
+    Slot [14] (J-15)                :       2 Wh
+    Slot [15] (J-14)                :       6 Wh
+    Slot [16] (J-13)                :       7 Wh
+    Slot [17] (J-12)                :       7 Wh
+    Slot [18] (J-11)                :       5 Wh
+    Slot [19] (J-10)                :       9 Wh
+    Slot [20] (J-09)                :      11 Wh
+    Slot [21] (J-08)                :      15 Wh
+    Slot [22] (J-07)                :       7 Wh
+    Slot [23] (J-06)                :      18 Wh
+    Slot [24] (J-05)                :       3 Wh
+    Slot [25] (J-04)                :       5 Wh
+    Slot [26] (J-03)                :       0 Wh
+    Slot [27] (J-02)                :       0 Wh
+    Slot [28] (J-01) [HIER]         :       0 Wh
+    Slot [29] (J-00) [AUJOURD'HUI]  :       0 Wh
+  [HISTORIQUE MENSUEL - 12 MOIS (Wh)]
+    Slot [00] (M-11)                 :       0 Wh
+    Slot [01] (M-10)                 :       0 Wh
+    Slot [02] (M-09)                 :       0 Wh
+    Slot [03] (M-08)                 :       0 Wh
+    Slot [04] (M-07)                 :       0 Wh
+    Slot [05] (M-06)                 :       0 Wh
+    Slot [06] (M-05)                 :       0 Wh
+    Slot [07] (M-04)                 :       0 Wh
+    Slot [08] (M-03)                 :       0 Wh
+    Slot [09] (M-02)                 :       1 Wh
+    Slot [10] (M-01) [M-1]           :     458 Wh
+    Slot [11] (M-00) [MOIS COURANT]  :     167 Wh
+
+================================================================================
+ ÉTAPE 2 : INJECTION DE L'HEURE -> 18/11/2026 à 18:59:50
+          (À 10 secondes de l'heure pile 19:00:00)
+================================================================================
+[RTC] Commande setDateTime(18:59:50) acceptée par la prise !
+
+================================================================================
+ ÉTAPE 3 : ATTENTE DE 15 SECONDES DU FRANCHISSEMENT D'HEURE PILE (19:00:00)
+================================================================================
+  T+00s -> Heure interne estimée prise: 18:59:50 (reste 15s)
+  T+01s -> Heure interne estimée prise: 18:59:51 (reste 14s)
+  T+02s -> Heure interne estimée prise: 18:59:52 (reste 13s)
+  T+03s -> Heure interne estimée prise: 18:59:53 (reste 12s)
+  T+04s -> Heure interne estimée prise: 18:59:54 (reste 11s)
+  T+05s -> Heure interne estimée prise: 18:59:55 (reste 10s)
+  T+06s -> Heure interne estimée prise: 18:59:56 (reste  9s)
+  T+07s -> Heure interne estimée prise: 18:59:57 (reste  8s)
+  T+08s -> Heure interne estimée prise: 18:59:58 (reste  7s)
+  T+09s -> Heure interne estimée prise: 18:59:59 (reste  6s)
+  T+10s -> Heure interne estimée prise: 19:00:00 (reste  5s)
+  T+11s -> Heure interne estimée prise: 19:00:01 (reste  4s)
+  T+12s -> Heure interne estimée prise: 19:00:02 (reste  3s)
+  T+13s -> Heure interne estimée prise: 19:00:03 (reste  2s)
+  T+14s -> Heure interne estimée prise: 19:00:04 (reste  1s)
+  >>> 15 secondes écoulées : 19:00:00 a été franchi !
+
+================================================================================
+ ÉTAPE 4 : RELECTURE DES HISTORIQUES POST-HEURE PILE
+================================================================================
+  [TÉLÉMESURE 0x0400]
+    Relais : ON | Tension : 232 V | Fréquence : 50 Hz
+    Puissance active : 0.000 W | Courant : 0.015 A
+    totalKwhWh brut : 0 (0x00000000)
+  [DIAGNOSTIC FFF2]
+    Word0 : 0x1483 (5251) | Courant brut : 0.014 A (octet2: 0x00)
+  [HISTORIQUE HORAIRE - 24H (Wh)]
+    Slot [00] (H-23)             :     0 Wh
+    Slot [01] (H-22)             :     0 Wh
+    Slot [02] (H-21)             :     0 Wh
+    Slot [03] (H-20)             :     0 Wh
+    Slot [04] (H-19)             :     0 Wh
+    Slot [05] (H-18)             :     0 Wh
+    Slot [06] (H-17)             :     0 Wh
+    Slot [07] (H-16)             :     0 Wh
+    Slot [08] (H-15)             :     0 Wh
+    Slot [09] (H-14)             :     0 Wh
+    Slot [10] (H-13)             :     0 Wh
+    Slot [11] (H-12)             :     0 Wh
+    Slot [12] (H-11)             :     0 Wh
+    Slot [13] (H-10)             :     0 Wh
+    Slot [14] (H-09)             :     0 Wh
+    Slot [15] (H-08)             :     0 Wh
+    Slot [16] (H-07)             :     0 Wh
+    Slot [17] (H-06)             :     0 Wh
+    Slot [18] (H-05)             :     0 Wh
+    Slot [19] (H-04)             :     0 Wh
+    Slot [20] (H-03)             :     0 Wh
+    Slot [21] (H-02)             :     0 Wh
+    Slot [22] (H-01) [H-1]       :    62 Wh (Δ: +62 Wh) <<< CHANGÉ
+    Slot [23] (H-00) [EN COURS]  :     0 Wh (Δ: -62 Wh) <<< CHANGÉ
+  [HISTORIQUE JOURNALIER - 30 JOURS (Wh)]
+    Slot [00] (J-29)                :       0 Wh
+    Slot [01] (J-28)                :       0 Wh
+    Slot [02] (J-27)                :       0 Wh
+    Slot [03] (J-26)                :       0 Wh
+    Slot [04] (J-25)                :       0 Wh
+    Slot [05] (J-24)                :       0 Wh
+    Slot [06] (J-23)                :       0 Wh
+    Slot [07] (J-22)                :       0 Wh
+    Slot [08] (J-21)                :       0 Wh
+    Slot [09] (J-20)                :       2 Wh
+    Slot [10] (J-19)                :       0 Wh
+    Slot [11] (J-18)                :       5 Wh
+    Slot [12] (J-17)                :      31 Wh
+    Slot [13] (J-16)                :      41 Wh
+    Slot [14] (J-15)                :       2 Wh
+    Slot [15] (J-14)                :       6 Wh
+    Slot [16] (J-13)                :       7 Wh
+    Slot [17] (J-12)                :       7 Wh
+    Slot [18] (J-11)                :       5 Wh
+    Slot [19] (J-10)                :       9 Wh
+    Slot [20] (J-09)                :      11 Wh
+    Slot [21] (J-08)                :      15 Wh
+    Slot [22] (J-07)                :       7 Wh
+    Slot [23] (J-06)                :      18 Wh
+    Slot [24] (J-05)                :       3 Wh
+    Slot [25] (J-04)                :       5 Wh
+    Slot [26] (J-03)                :       0 Wh
+    Slot [27] (J-02)                :       0 Wh
+    Slot [28] (J-01) [HIER]         :       0 Wh
+    Slot [29] (J-00) [AUJOURD'HUI]  :      62 Wh (Δ: +62 Wh) <<< CHANGÉ
+  [HISTORIQUE MENSUEL - 12 MOIS (Wh)]
+    Slot [00] (M-11)                 :       0 Wh
+    Slot [01] (M-10)                 :       0 Wh
+    Slot [02] (M-09)                 :       0 Wh
+    Slot [03] (M-08)                 :       0 Wh
+    Slot [04] (M-07)                 :       0 Wh
+    Slot [05] (M-06)                 :       0 Wh
+    Slot [06] (M-05)                 :       0 Wh
+    Slot [07] (M-04)                 :       0 Wh
+    Slot [08] (M-03)                 :       0 Wh
+    Slot [09] (M-02)                 :       1 Wh
+    Slot [10] (M-01) [M-1]           :     458 Wh
+    Slot [11] (M-00) [MOIS COURANT]  :     229 Wh (Δ: +62 Wh) <<< CHANGÉ
+
+[BLE] Prise déconnectée proprement.
+================================================================================
+   EXPÉRIENCE 03 TERMINÉE AVEC SUCCÈS ! PRISE LIBÉRÉE                          
+================================================================================

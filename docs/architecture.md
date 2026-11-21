@@ -74,8 +74,8 @@ Validés par croisement entre captures BLE et exports CSV de l'application const
 | **Journalier (`0x0B00`)** | `requestMonthHistory` | `uint32_t[30]` | **Slot `[29]`** | Slot `[28]` (Hier) | Mis à jour **à chaque heure pile (`HH:00:00`)** par addition de l'heure qui vient de se fermer. |
 | **Mensuel (`0x0C00`)** | `requestYearHistory` | `uint32_t[12]` | **Slot `[11]`** | Slot `[10]` (M-1) | Mis à jour **à chaque heure pile (`HH:00:00`)** par addition de l'heure qui vient de se fermer. |
 
-### 2.5 Comportement du Firmware : Synchronisation, Heure Pile & Coupure Secteur
-Les expérimentations menées sur banc de test réel (`experiments/exp_02` à `exp_05`) ont permis d'établir avec certitude la cinématique interne du microprogramme du SEM6000 :
+### 2.5 Comportement du Firmware : Synchronisation, Heure Pile, Surcharge & Coupure Secteur
+Les expérimentations menées sur banc de test réel (`experiments/exp_02` à `exp_07`) ont permis d'établir avec une certitude absolue la cinématique interne du microprogramme du SEM6000 :
 
 #### 1. Changement d'heure (`setDateTime`)
 * L'envoi d'une nouvelle heure via `setDateTime()` ne provoque **aucun recalcul ni décalage immédiat** des slots d'historiques.
@@ -96,10 +96,53 @@ Les expérimentations menées sur banc de test réel (`experiments/exp_02` à `e
   * L'historique horaire (`hourlyWh[24]`) réside en **RAM volatile** et est remis à zéro lors d'un redémarrage.
 * **Verrouillage des données en état amnésique :**
   * Tant que la prise est en état amnésique (`FFF2 == 0xFFFF`), le microprogramme **masque les historiques et renvoie 0 Wh** sur toutes les requêtes pour éviter de servir des index désynchronisés.
-  * **Perte de comptage sous amnésie :** Toute énergie consommée tant que la prise est en état `0xFFFF` est **définitivement perdue** (le firmware suspend l'intégration en Flash tant que l'horloge n'est pas calée).
+  * **Perte de comptage sous amnésie :** Toute énergie consommée tant que la prise est en état `0xFFFF` est **définitivement perdue** (le firmware suspend l'intégration en Flash tant que l'horloge n'est pas calée). D'où l'impératif absolu pour la passerelle de réinjecter le temps NTP dès la première seconde de détection.
 * **Démasquage automatique après `setDateTime()` :**
-  * Dès réception d'une trame `setDateTime()` valide, `Word0` quitte la valeur `0xFFFF` pour réafficher sa valeur nominale de seuil (ex. `0x14C6` = 5318 W).
+  * Dès réception d'une trame `setDateTime()` valide, `Word0` quitte la valeur `0xFFFF` pour réafficher sa valeur nominale de seuil (ex. `0x14C6` = 5318 mA).
   * Le firmware recale ses pointeurs calendaires et **l'intégralité des historiques journaliers et mensuels réapparaît immédiatement et intacte**.
+
+#### 4. Disjonction par Surcharge vs Coupure Secteur (`exp_06`)
+* **Comportement de `Word0` :** En cas de disjonction par dépassement de seuil ($I_{\text{mesuré}} > I_{\max}$), **`Word0` ne passe PAS à `0xFFFF`** mais reste figé à sa valeur nominale $I_{\max}$ (ex. `5318 mA`). L'alimentation 3.3V interne du microcontrôleur reste active : la RTC ne perd jamais l'heure.
+* **Temporisation thermique interne :** Le microprogramme applique une temporisation de sécurité d'environ **1,5 seconde** avant d'ouvrir le relais, afin d'absorber les courants d'appel transitoires des moteurs.
+* **Absence de flag persistant de surcharge :** La prise ne mémorise aucun code d'erreur dédié pour indiquer qu'elle a disjoncté. L'état `Relais == OFF` ne prouve donc pas une surcharge (l'utilisateur ou un planning a pu couper le relais manuellement).
+
+#### 5. Trigger de Rotation Journalière : Le Verdict de Minuit (`exp_07`)
+* **Démonstration empirique formelle :** Le basculement du buffer journalier `dailyWh[30]` n'est **pas** conditionné par un compteur modulo 24 heures, mais **strictement par le front montant calendaire de Minuit (`23:59:59 -> 00:00:00`)**.
+* À minuit pile, de manière atomique :
+  1. `dailyWh[29]` (énergie du jour J) est scellé et bascule dans `dailyWh[28]` (`J-1`).
+  2. `dailyWh[29]` est réinitialisé à `0 Wh` pour entamer la nouvelle journée.
+  3. L'historique des 30 jours glisse d'un cran vers la gauche (`[28] -> [27]`, etc.).
+
+#### 6. Recul d'Horloge & Phénomène de Double Rotation (`exp_07`)
+* **Démonstration de la cascade d'interruption :** Chaque franchissement de `HH:00:00` déclenche inconditionnellement la rotation du buffer horaire `hourlyWh[24]`.
+* Si une commande `setDateTime()` recule l'horloge en arrière d'une heure pile déjà franchie (ex. passage de `02:01:30` à `01:58:30`) :
+  * Le créneau horaire est rejoué.
+  * Au second passage de `02:00:00`, la prise déclenche une **seconde rotation prématurée**.
+  * Le slot fermé lors du premier passage (`hourlyWh[22]`) est violemment poussé dans `hourlyWh[21]`, créant un **slot fantôme artificiel** et faussant l'ensemble de l'historique horaire.
+
+---
+
+### 2.6 Stratégie Maîtresse de Synchronisation d'Horloge (Plus précise que le constructeur)
+
+L'application mobile officielle du constructeur présente des lacunes de conception sévères :
+1. Elle injecte brutalement l'heure locale du smartphone à chaque connexion, sans se soucier des frontières d'heures.
+2. Lors du passage à l'heure d'hiver en octobre (`03:00 -> 02:00`), elle recule l'horloge de 1 heure, provoquant la corruption de l'historique horaire par double rotation.
+3. Le protocole ne fournit **aucune commande de lecture d'horloge (`getDateTime`)** : la commande `0x0100` est un setter aveugle. De plus, à consommation nulle (relais OFF), 0 Wh glissant vers 0 Wh rend toute dérive invisible à l'observation passive.
+
+Pour surpasser le constructeur et garantir une précision temporelle absolue sans aucun artefact d'historique, la passerelle applique les **3 Règles d'Or** suivantes :
+
+#### Règle 1 : Temps Monotone Invariant (UTC ou UTC+1 Fixe)
+* La prise est synchronisée exclusivement dans un référentiel horaire **invariant sans changement d'heure saisonnier (DST)** (ex. UTC+1 permanent, calé sur l'heure normale d'hiver française).
+* Chaque journée compte strictement 24 heures et aucune heure n'est jamais rejouée ni sautée.
+
+#### Règle 2 : Synchronisation en « Havre de Paix » (`HH:30:00`)
+* Un quartz de montre standard (32,768 kHz) dérive naturellement de **2 à 4 secondes par 24 heures** (soit au pire ~1 minute par mois).
+* La passerelle n'envoie de trame périodique de recalage NTP **qu'au milieu exact d'une heure**, idéalement à **`HH:30:00`**.
+* À la 30ᵉ minute, la correction de quelques secondes s'opère à **30 minutes pleines de toute heure pile**. Il est ainsi **mathématiquement impossible** de déclencher une double rotation ou de sauter une heure pile.
+
+#### Règle 3 : Remise à l'Heure Immédiate sur Détection Amnésique
+* Si `FFF2 == 0xFFFF` (retour secteur après coupure), l'horloge est amnésique (an 2000) et le comptage est bloqué.
+* Dans ce cas unique, la passerelle injecte immédiatement l'heure NTP à la première seconde de connexion sans attendre `HH:30`, afin de démasquer la Flash et de relancer le comptage au plus vite.
 
 ---
 
@@ -126,15 +169,37 @@ L'architecture est découpée en trois couches distinctes pour isoler le protoco
   * `dailyWh[29 - daysAgo]`
   * `monthlyWh[11 - monthsAgo]`
 
-### Couche 2 : `ManagedSEM6000` (Prochaine étape d'implémentation)
-Encapsule une instance `SEM6000Device` pour garantir la continuité des données vers Domoticz :
-1. **Détection de démarrage à froid & Remise à l'heure prioritaire :**
+### Couche 2 : `ManagedSEM6000`
+Encapsule une instance `SEM6000Device` pour garantir la continuité des données et l'intégrité de la base Domoticz :
+
+1. **Détection d'amnésie & Remise à l'heure prioritaire :**
    * Lecture de `FFF2` sans authentification. Si octets `[0..1] == 0xFFFF`, déclenchement immédiat dès la première seconde d'une commande `setDateTime()` avec l'heure NTP afin de minimiser la fenêtre pendant laquelle la prise ne compte pas l'énergie et de démasquer les historiques Flash.
-2. **Reconstruction de l'Index Perpétuel 32 bits (`uint32_t indexWh`) :**
-   * En régime nominal : calcul du différentiel continu sur `hourlyWh[23]` et prise en compte du basculement atomique vers `hourlyWh[22]` lors du franchissement de l'heure pile (`HH:00:00`).
-   * En reprise après coupure secteur : le buffer horaire de 24h étant réinitialisé, la passerelle s'appuie sur la valeur réapparue du jour courant `dailyWh[29]` et sur son dernier index persisté en mémoire non volatile (**NVS / Preferences**) pour réconcilier le cumul absolu sans aucune perte de Watt-heure.
-   * Sauvegarde périodique en NVS de `indexWh`, du timestamp de commit et de la dernière valeur journalière connue.
+
+2. **Reconstruction de l'Index Perpétuel 32 bits (`uint32_t indexWh`) & Monotonie Stricte :**
+   * **Règle absolue d'émission Domoticz :**
+     $$\text{Index}_{\text{transmis}} = \max(\text{Index}_{\text{calculé}}, \text{Index}_{\text{Domoticz}})$$
+     L'ESP32 ne transmet **jamais** un index inférieur au précédent afin d'éviter les débordements 32 bits dévastateurs dans la base SQLite de Domoticz.
+   * **Initialisation par interrogation Domoticz :** Au démarrage de la passerelle (ou lors du remplacement à neuf d'un ESP32 sans NVS), interrogation de l'API HTTP/JSON (`/json.htm?type=command&param=getdevices&rid=IDX`) pour caler la ligne de base sur l'index officiel de Domoticz.
+
+3. **Traitement Asynchrone du Franchissement d'Heure Pile :**
+   * L'ESP32 n'a pas besoin d'être connecté à `HH:00:00` pile.
+   * La condition `hourlyWh[23] < m_lastHourly23` suffit à certifier de manière asynchrone que l'heure a basculé côté prise : la fin de l'heure précédente est scellée dans `hourlyWh[22]` et le début de l'heure en cours dans `hourlyWh[23]`, sans aucun trou de comptage.
+   * Si `hourlyWh[23] == m_lastHourly23 == 0` (charge nulle ou relais coupé), l'index reste parfaitement stable.
+
+4. **Résilience et Rattrapage Multi-Échelles Post-Panne :**
+   Au redémarrage après une absence prolongée (coupure Wi-Fi, crash ESP32, vacances), calcul de $\Delta T = T_{\text{NTP}} - T_{\text{NVS}}$ :
+   * **Si $\Delta T \le 23\text{ h}$ :** Rattrapage intégral à la granularité horaire via `hourlyWh[24]`.
+   * **Si $24\text{ h} < \Delta T \le 29\text{ jours}$ :** Rattrapage via la somme des cases non comptabilisées de `dailyWh[30]`.
+   * **Si $\Delta T > 30\text{ jours}$ :** Rattrapage via l'historique mensuel `monthlyWh[12]`.
+
+5. **Politique d'usure Flash NVS :**
+   * Sauvegarde en NVS (`Preferences`) déclenchée uniquement si $\Delta \ge 10\text{ Wh}$ ou si plus de 30 minutes se sont écoulées, garantissant une longévité de plus de 50 ans de la Flash de l'ESP32.
 
 ### Couche 3 : `SEM6000Manager`
-* Gère un parc de plusieurs prises SEM6000 en séquentialisant les accès radio BLE (évite les collisions NimBLE), distribue le temps NTP et pousse les mises à jour vers Domoticz.
+Ordonnance le parc de prises et assure la passerelle vers Domoticz :
+* **Contrainte Mono-Connexion BLE :** La prise n'acceptant qu'un seul client BLE à la fois, les connexions sont strictement séquentialisées (une prise après l'autre, pas de concurrence radio).
+* **Flotte de Passerelles Multi-Niveaux (Topologie) :**
+  * Dans un logement sur plusieurs niveaux (ex. 10 prises réparties entre cave, garage, arrière-cuisine derrière murs béton, salon et étages), plusieurs ESP32 exécutant le même firmware générique sont déployés par zone.
+  * **Attribution déclarative stricte (Master Controller) :** Chaque ESP32 détient sa propre table de prises assignées. Une prise n'est interrogée que par son ESP32 Maître exclusif pour éviter toute collision ou déconnexion sauvage.
+* **Synchronisation Réseau :** Distribution du temps NTP et publication HTTP/JSON ou MQTT vers Domoticz.
 

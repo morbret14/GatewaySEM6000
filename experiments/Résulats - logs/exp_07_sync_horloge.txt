@@ -1,0 +1,209 @@
+  [EN ATTENTE - 1. PRÉPARATION MATÉRIELLE] Appuyez sur le bouton BOOT (GPIO 0) ou 'Entrée'...
+  [EN ATTENTE - 1. PRÉPARATION MATÉRIELLE] Appuyez sur le bouton BOOT (GPIO 0) ou 'Entrée'...
+  [EN ATTENTE - 1. PRÉPARATION MATÉRIELLE] Appuyez sur le bouton BOOT (GPIO 0) ou 'Entrée'...
+>>> Action validée par l'utilisateur ! Démarrage de l'étape...
+
+[BLE] Tentative de connexion à la prise 94:a9:a8:1a:37:0c...
+[BLE] ✅ Connecté !
+[BLE] ✅ Authentifié avec succès (PIN 32-bit: 0x00000000) !
+
+[SETUP] Vérification de l'état du relais...
+[ÉTAT INITIAL]
+  Tension : 231 V | Fréquence : 50 Hz
+  Puissance instantanée : 502.0 W | Courant : 2.394 A
+  Slot horaire [23] (En cours) : 20 Wh | Slot [22] (H-1) : 0 Wh
+  Slot journalier [29] (Aujourd'hui) : 0 Wh | Slot [28] (Hier) : 0 Wh
+
+================================================================================
+ >>> ÉTAPE : 2. PARTIE 1 : TEST DE LA BASCULE DE MINUIT
+--------------------------------------------------------------------------------
+Nous allons programmer l'horloge de la prise à 23:59:45 (le 21/11/2026).
+Puis nous allons attendre 35 secondes sous charge pour la laisser franchir
+naturellement le cap de minuit (23:59:59 -> 00:00:00).
+
+Hypothèse testée : Le franchissement de minuit déclenche-t-il immédiatement
+la rotation du buffer journalier (daily[29] -> daily[28]) ?
+
+  👉 [Appuyez sur le bouton physique BOOT de l'ESP32 ou envoyez 'Entrée' en console]
+================================================================================
+
+  [EN ATTENTE - 2. PARTIE 1 : TEST DE LA BASCULE DE MINUIT] Appuyez sur le bouton BOOT (GPIO 0) ou 'Entrée'...
+  [EN ATTENTE - 2. PARTIE 1 : TEST DE LA BASCULE DE MINUIT] Appuyez sur le bouton BOOT (GPIO 0) ou 'Entrée'...
+>>> Action validée par l'utilisateur ! Démarrage de l'étape...
+
+[RTC] Envoi de l'heure : 21/11/2026 à 23:59:45...
+[RTC] ✅ Heure 23:59:45 acceptée par la prise !
+
+⏳ COMPTE À REBOURS DU FRANCHISSEMENT DE MINUIT (~35 secondes) :
+  [T-35s] Heure estimée prise : 21/11/2026 23:59:45 | P: 495.7 W | I: 2.379 A
+  [T-34s] Heure estimée prise : 21/11/2026 23:59:46 | P: 495.8 W | I: 2.379 A
+  [T-33s] Heure estimée prise : 21/11/2026 23:59:47 | P: 493.5 W | I: 2.373 A
+  [T-32s] Heure estimée prise : 21/11/2026 23:59:48 | P: 493.1 W | I: 2.372 A
+  [T-31s] Heure estimée prise : 21/11/2026 23:59:49 | P: 493.3 W | I: 2.372 A
+  [T-30s] Heure estimée prise : 21/11/2026 23:59:50 | P: 494.9 W | I: 2.376 A
+  [T-29s] Heure estimée prise : 21/11/2026 23:59:51 | P: 494.5 W | I: 2.375 A
+  [T-28s] Heure estimée prise : 21/11/2026 23:59:52 | P: 499.3 W | I: 2.387 A
+  [T-27s] Heure estimée prise : 21/11/2026 23:59:53 | P: 498.9 W | I: 2.386 A
+  [T-26s] Heure estimée prise : 21/11/2026 23:59:54 | P: 499.1 W | I: 2.386 A
+  [T-25s] Heure estimée prise : 21/11/2026 23:59:55 | P: 506.0 W | I: 2.403 A
+  [T-24s] Heure estimée prise : 21/11/2026 23:59:56 | P: 506.6 W | I: 2.404 A
+  [T-23s] Heure estimée prise : 21/11/2026 23:59:57 | P: 504.8 W | I: 2.399 A
+  [T-22s] Heure estimée prise : 21/11/2026 23:59:58 | P: 505.8 W | I: 2.401 A
+  [T-21s] Heure estimée prise : 21/11/2026 23:59:59 | P: 505.6 W | I: 2.401 A
+  [T-20s] Heure estimée prise : 22/11/2026 00:00:00 | P: 507.3 W | I: 2.405 A
+  [T-19s] Heure estimée prise : 22/11/2026 00:00:01 | P: 507.1 W | I: 2.404 A
+  [T-18s] Heure estimée prise : 22/11/2026 00:00:02 | P: 508.5 W | I: 2.408 A
+  [T-17s] Heure estimée prise : 22/11/2026 00:00:03 | P: 508.3 W | I: 2.407 A
+  [T-16s] Heure estimée prise : 22/11/2026 00:00:04 | P: 507.5 W | I: 2.405 A
+  [T-15s] Heure estimée prise : 22/11/2026 00:00:05 | P: 508.0 W | I: 2.406 A
+  [T-14s] Heure estimée prise : 22/11/2026 00:00:06 | P: 507.0 W | I: 2.404 A
+  [T-13s] Heure estimée prise : 22/11/2026 00:00:07 | P: 507.4 W | I: 2.405 A
+  [T-12s] Heure estimée prise : 22/11/2026 00:00:08 | P: 508.2 W | I: 2.407 A
+  [T-11s] Heure estimée prise : 22/11/2026 00:00:09 | P: 507.7 W | I: 2.406 A
+  [T-10s] Heure estimée prise : 22/11/2026 00:00:10 | P: 507.0 W | I: 2.404 A
+  [T-09s] Heure estimée prise : 22/11/2026 00:00:11 | P: 511.8 W | I: 2.415 A
+  [T-08s] Heure estimée prise : 22/11/2026 00:00:12 | P: 504.0 W | I: 2.396 A
+  [T-07s] Heure estimée prise : 22/11/2026 00:00:13 | P: 502.8 W | I: 2.393 A
+  [T-06s] Heure estimée prise : 22/11/2026 00:00:14 | P: 501.4 W | I: 2.390 A
+  [T-05s] Heure estimée prise : 22/11/2026 00:00:15 | P: 501.4 W | I: 2.390 A
+  [T-04s] Heure estimée prise : 22/11/2026 00:00:16 | P: 500.1 W | I: 2.387 A
+  [T-03s] Heure estimée prise : 22/11/2026 00:00:17 | P: 500.1 W | I: 2.386 A
+  [T-02s] Heure estimée prise : 22/11/2026 00:00:18 | P: 499.9 W | I: 2.386 A
+  [T-01s] Heure estimée prise : 22/11/2026 00:00:19 | P: 502.5 W | I: 2.392 A
+
+[PARTIE 1] Minuit est franchi ! Lecture de l'historique post-minuit...
+
+--------------------------------------------------------------------------------
+  📊 COMPARAISON DE L'HISTORIQUE JOURNALIER (Wh)
+--------------------------------------------------------------------------------
+  Slot             | Avant Minuit         | Après Minuit        | Différence
+-------------------+----------------------+----------------------+--------------
+  Slot [27] (J-2)  |          8 Wh        |          0 Wh        | -8 Wh (CHANGÉ)
+  Slot [28] (J-1)  |          0 Wh        |         24 Wh        | +24 Wh (CHANGÉ)
+  Slot [29] (J-0)  |          0 Wh        |          0 Wh        | 0 Wh (identique)
+--------------------------------------------------------------------------------
+
+================================================================================
+ 🎯 ANALYSE & VERDICT PARTIE 1 :
+  ℹ️  RÉSULTAT PARTICULIER : daily[29]=0 Wh, daily[28]=24 Wh.
+================================================================================
+
+
+================================================================================
+ >>> ÉTAPE : 3. PARTIE 2 : RECUL D'HORLOGE & DOUBLE ROTATION
+--------------------------------------------------------------------------------
+Nous allons maintenant tester ce qui se passe lorsqu'on force un recul d'heure.
+  - Cycle 1 : On injecte 01:58:30. On attend 3 minutes (180s) sous charge pour
+              franchir 02:00:00 et observer la fermeture normale du slot [22].
+  - Recalage arrière : On force à nouveau l'horloge à reculer à 01:58:30.
+  - Cycle 2 : On attend à nouveau 3 minutes (180s) pour franchir une 2nde fois
+              la même heure pile (02:00:00).
+
+Hypothèse testée : Le recul d'heure fait-il décaler à nouveau le buffer [22] dans [21]
+(phénomène de double rotation et création de slot fantôme) ?
+
+  👉 [Appuyez sur le bouton physique BOOT de l'ESP32 ou envoyez 'Entrée' en console]
+================================================================================
+
+  [EN ATTENTE - 3. PARTIE 2 : RECUL D'HORLOGE & DOUBLE ROTATION] Appuyez sur le bouton BOOT (GPIO 0) ou 'Entrée'...
+  [EN ATTENTE - 3. PARTIE 2 : RECUL D'HORLOGE & DOUBLE ROTATION] Appuyez sur le bouton BOOT (GPIO 0) ou 'Entrée'...
+  [EN ATTENTE - 3. PARTIE 2 : RECUL D'HORLOGE & DOUBLE ROTATION] Appuyez sur le bouton BOOT (GPIO 0) ou 'Entrée'...
+  [EN ATTENTE - 3. PARTIE 2 : RECUL D'HORLOGE & DOUBLE ROTATION] Appuyez sur le bouton BOOT (GPIO 0) ou 'Entrée'...
+  [EN ATTENTE - 3. PARTIE 2 : RECUL D'HORLOGE & DOUBLE ROTATION] Appuyez sur le bouton BOOT (GPIO 0) ou 'Entrée'...
+  [EN ATTENTE - 3. PARTIE 2 : RECUL D'HORLOGE & DOUBLE ROTATION] Appuyez sur le bouton BOOT (GPIO 0) ou 'Entrée'...
+  [EN ATTENTE - 3. PARTIE 2 : RECUL D'HORLOGE & DOUBLE ROTATION] Appuyez sur le bouton BOOT (GPIO 0) ou 'Entrée'...
+  [EN ATTENTE - 3. PARTIE 2 : RECUL D'HORLOGE & DOUBLE ROTATION] Appuyez sur le bouton BOOT (GPIO 0) ou 'Entrée'...
+>>> Action validée par l'utilisateur ! Démarrage de l'étape...
+
+[CYCLE 1] Programmation de l'horloge à 01:58:30 (22/11/2026)...
+[CYCLE 1] Horloge calée. Début de l'attente active de 180s (3 minutes)...
+  [Cycle 1 - Reste 180s] Heure estimée : 01:58:30 | P: 508.0 W | I: 2.404 A
+  [Cycle 1 - Reste 170s] Heure estimée : 01:58:40 | P: 499.7 W | I: 2.384 A
+  [Cycle 1 - Reste 160s] Heure estimée : 01:58:50 | P: 492.4 W | I: 2.366 A
+  [Cycle 1 - Reste 150s] Heure estimée : 01:59:00 | P: 505.8 W | I: 2.398 A
+  [Cycle 1 - Reste 140s] Heure estimée : 01:59:10 | P: 506.9 W | I: 2.401 A
+  [Cycle 1 - Reste 130s] Heure estimée : 01:59:20 | P: 500.3 W | I: 2.385 A
+  [Cycle 1 - Reste 120s] Heure estimée : 01:59:30 | P: 500.0 W | I: 2.384 A
+  [Cycle 1 - Reste 110s] Heure estimée : 01:59:40 | P: 500.5 W | I: 2.385 A
+  [Cycle 1 - Reste 100s] Heure estimée : 01:59:50 | P: 509.1 W | I: 2.406 A
+  [Cycle 1 - Reste  90s] Heure estimée : 02:00:00 | P: 502.7 W | I: 2.390 A
+  [Cycle 1 - Reste  80s] Heure estimée : 02:00:10 | P: 498.2 W | I: 2.380 A
+  [Cycle 1 - Reste  70s] Heure estimée : 02:00:20 | P: 500.2 W | I: 2.384 A
+  [Cycle 1 - Reste  60s] Heure estimée : 02:00:30 | P: 498.2 W | I: 2.380 A
+  [Cycle 1 - Reste  50s] Heure estimée : 02:00:40 | P: 490.8 W | I: 2.362 A
+  [Cycle 1 - Reste  40s] Heure estimée : 02:00:50 | P: 491.9 W | I: 2.364 A
+  [Cycle 1 - Reste  30s] Heure estimée : 02:01:00 | P: 490.3 W | I: 2.360 A
+  [Cycle 1 - Reste  20s] Heure estimée : 02:01:10 | P: 496.3 W | I: 2.375 A
+  [Cycle 1 - Reste  10s] Heure estimée : 02:01:20 | P: 483.3 W | I: 2.343 A
+
+[CYCLE 1 TERMINÉ]
+  Slot [23] (En cours) : 12 Wh
+  Slot [22] (H-1)      : 19 Wh
+  Slot [21] (H-2)      : 24 Wh
+
+--------------------------------------------------------------------------------
+ >>> ⏪ INJECTION DU RECUL D'HORLOGE : RETOUR FORCÉ À 01:58:30 !
+--------------------------------------------------------------------------------
+[CYCLE 2] Début de la 2nde attente active de 180s (3 minutes) sous la même charge...
+  [Cycle 2 - Reste 180s] Heure estimée : 01:58:30 | P: 488.8 W | I: 2.357 A
+  [Cycle 2 - Reste 170s] Heure estimée : 01:58:40 | P: 495.0 W | I: 2.372 A
+  [Cycle 2 - Reste 160s] Heure estimée : 01:58:50 | P: 496.0 W | I: 2.374 A
+  [Cycle 2 - Reste 150s] Heure estimée : 01:59:00 | P: 493.7 W | I: 2.369 A
+  [Cycle 2 - Reste 140s] Heure estimée : 01:59:10 | P: 490.8 W | I: 2.362 A
+  [Cycle 2 - Reste 130s] Heure estimée : 01:59:20 | P: 495.9 W | I: 2.374 A
+  [Cycle 2 - Reste 120s] Heure estimée : 01:59:30 | P: 503.7 W | I: 2.393 A
+  [Cycle 2 - Reste 110s] Heure estimée : 01:59:40 | P: 951.6 W | I: 4.197 A
+  [Cycle 2 - Reste 100s] Heure estimée : 01:59:50 | P: 970.4 W | I: 4.237 A
+  [Cycle 2 - Reste  90s] Heure estimée : 02:00:00 | P: 992.9 W | I: 4.285 A
+  [Cycle 2 - Reste  80s] Heure estimée : 02:00:10 | P: 988.3 W | I: 4.275 A
+  [Cycle 2 - Reste  70s] Heure estimée : 02:00:20 | P: 499.6 W | I: 2.380 A
+  [Cycle 2 - Reste  60s] Heure estimée : 02:00:30 | P: 498.9 W | I: 2.380 A
+  [Cycle 2 - Reste  50s] Heure estimée : 02:00:40 | P: 501.6 W | I: 2.387 A
+  [Cycle 2 - Reste  40s] Heure estimée : 02:00:50 | P: 501.8 W | I: 2.387 A
+  [Cycle 2 - Reste  30s] Heure estimée : 02:01:00 | P: 493.4 W | I: 2.367 A
+  [Cycle 2 - Reste  20s] Heure estimée : 02:01:10 | P: 504.4 W | I: 2.394 A
+  [Cycle 2 - Reste  10s] Heure estimée : 02:01:20 | P: 509.3 W | I: 2.405 A
+
+--------------------------------------------------------------------------------
+  📊 COMPARAISON DE L'HISTORIQUE HORAIRE (Wh)
+--------------------------------------------------------------------------------
+  Slot             | Fin Cycle 1          | Fin Cycle 2          | Différence
+-------------------+----------------------+----------------------+--------------
+  Slot [20] (H-3)  |          0 Wh        |         24 Wh        | +24 Wh (CHANGÉ)
+  Slot [21] (H-2)  |         24 Wh        |         19 Wh        | -5 Wh (CHANGÉ)
+  Slot [22] (H-1)  |         19 Wh        |         28 Wh        | +9 Wh (CHANGÉ)
+  Slot [23] (En cours) |         12 Wh        |         14 Wh        | +2 Wh (CHANGÉ)
+--------------------------------------------------------------------------------
+
+================================================================================
+ 🎯 ANALYSE & VERDICT PARTIE 2 :
+  ⚠️ DOUBLE ROTATION CONFIRMÉE !
+     -> Le slot fermé au cycle 1 (19 Wh) a été poussé vers le slot [21] !
+     -> Cela prouve formellement que reculer l'horloge à travers une heure pile
+        génère une rotation prématurée et un créneau horaire artificiel.
+     -> RÈGLE D'OR VALIDÉE : Ne jamais reculer l'horloge à proximité d'une heure pile !
+================================================================================
+
+
+================================================================================
+ >>> ÉTAPE : 4. RESTAURATION DE LA PRISE & FIN DU TEST
+--------------------------------------------------------------------------------
+Les deux tests sont terminés avec succès !
+Nous allons maintenant reprogrammer la prise sur la date/heure actuelle
+en temps invariant (ex. 21/11/2026 à 16:30:00) pour qu'elle reprenne son cours normal.
+Appuyez sur BOOT pour effectuer la synchronisation et libérer le BLE.
+
+  👉 [Appuyez sur le bouton physique BOOT de l'ESP32 ou envoyez 'Entrée' en console]
+================================================================================
+
+  [EN ATTENTE - 4. RESTAURATION DE LA PRISE & FIN DU TEST] Appuyez sur le bouton BOOT (GPIO 0) ou 'Entrée'...
+  [EN ATTENTE - 4. RESTAURATION DE LA PRISE & FIN DU TEST] Appuyez sur le bouton BOOT (GPIO 0) ou 'Entrée'...
+  [EN ATTENTE - 4. RESTAURATION DE LA PRISE & FIN DU TEST] Appuyez sur le bouton BOOT (GPIO 0) ou 'Entrée'...
+>>> Action validée par l'utilisateur ! Démarrage de l'étape...
+
+[RESTORE] Resynchronisation sur 21/11/2026 à 16:30:00 (en plein milieu d'heure)...
+[BLE] Déconnexion propre de la prise...
+
+================================================================================
+  🎉 FIN DE L'EXPÉRIENCE 07 : PRISE DÉCONNECTÉE & DISPONIBLE                    
+================================================================================
