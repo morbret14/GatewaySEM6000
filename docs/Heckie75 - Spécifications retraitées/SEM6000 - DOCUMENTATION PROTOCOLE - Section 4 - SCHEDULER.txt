@@ -1,0 +1,294 @@
+SEM6000 - DOCUMENTATION PROTOCOLE
+SECTION 4 : SCHEDULER
+
+Source : API.md
+
+============================================================
+1. REQUEST SCHEDULER
+============================================================
+
+OBJECTIF
+
+Lire la liste des programmations (Schedulers) enregistrées
+dans le SEM6000.
+
+L'application constructeur limite à 12 le nombre de Schedulers.
+
+Chaque scheduler est repéré par un SLOT ID compris entre 0x01 et 0x0C.
+Le Slot ID de valeur 0x00 n'est utilisé que lors des créations de Scheduler. C'est la prise qui assigne le Slot ID.
+
+Ils sont accessibles via des "pages" qui sont au nombre de 3 (0, 1, 2). Il y a, au maximum, 4 scheduler par page.
+
+Une "clef d'unicité" est calculée par le SEM6000 afin d'optimiser la détection des collisions de date/heure/jours entre les règles ce qui évite d'avoir à  examiner toutes les règles.
+
+Le SEM6000 détecte une erreur sur un jeu de règle pourtant valide du point de vue d'un utilisateur (ce qui laisse penser que le programmeur était fatigué, ou le SEM6000 trop occupé) :
+-Tous les lundi à 9H30 mettre le relai sur ON
+-Tous les mardi à 9H30 mettre le relai sur OFF
+La clef d'unicité obtenue est la même, ce qui laisse entendre que le "weekday Mask" n'est pas utilisé dans le calcul de la clef d'unicité.
+Pour implémenter le fonctionnement souhaité il suffit d'introduire un décalage de 1 minute sur l'heure.
+-Tous les lundi à 9H30 mettre le relai sur ON
+-Tous les mardi à 9H31 mettre le relai sur OFF
+
+Un scheduler correspond à une action planifiée ON/OFF du relai à une
+date précise (a) ou à une action hebdomadaire répétée continuellement à une heure précisée (b).
+
+(a) exemple : basculer le relai à ON le 15/02/2027 à 03H25
+(b) exemple : basculer le relai à OFF tous les lundi, mercredi, jeudi à 18H00
+
+============================================================
+TRAME DE REQUÊTE
+============================================================
+
+Valeur :
+
+0F 06 14 00 00 00 00 15 FF FF
+
+Décodage :
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 06	: longueur de la payload incluant la checksum
+Octets 3-4   : 1400	: commande Request Scheduler
+Octet 5      : 00	: numéro de page (0 = première page, 1 = seconde page)
+Octets 6-7   : 0000	: valeur fixe
+Octet 8      : 15	: checksum -> 1 + somme des octets 3 à 7 inclus
+Octets 9-10  : FFFF	: séquence de fin statique
+
+============================================================
+CAS N°1 : AUCUN SCHEDULER ENREGISTRÉ
+============================================================
+
+Notification :
+
+0F 04 14 00 00 15 FF FF
+
+Décodage :
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 04	: longueur de la payload incluant la checksum
+Octets 3-4   : 1400	: commande Request Scheduler
+Octet 5      : 00	: nombre de schedulers (dans la page ?)
+Octet 6      : 15	: checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF	: séquence de fin statique
+
+============================================================
+CAS N°2 : UN SEUL SCHEDULER
+============================================================
+
+Notification :
+
+0F 10 14 00 01 0C 01 01 00 13 08 09 0A 0B 00 00 4F AC FF FF
+
+Décodage :
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 10	: longueur de la payload incluant la checksum
+Octets 3-4   : 1400	: commande Request Scheduler
+Octet 5      : 01	: nombre de schedulers (dans la page ?)
+Octet 6      : 0C	: slot ID
+Octet 7      : 01	: état (0 = inactivé, 1 = activé)
+Octet 8      : 01	: action programmée (0 = OFF, 1 = ON)
+Octet 9      : 00	: weekday Mask (0x01=dimanche, 0x02=lundi, 0x04=mardi, …, 0x40=samedi, 0x7F=tous les jours, 0x00=une seule fois à l'heure indiquée ?)
+Octet 10     : 13	: Année (2013)
+Octet 11     : 08	: Mois
+Octet 12     : 09	: Jour
+Octet 13     : 0A	: Heure
+Octet 14     : 0B	: Minute
+Octets 15-16 : 0000	: valeur fixe
+Octets 17    : 4F	: ??? - clef d'unicité
+Octet 18     : AC	: checksum -> 1 + somme des octets 3 à 17 inclus
+Octets 19-20 : FFFF	: séquence de fin statique
+
+============================================================
+CAS N°3 : PLUSIEURS SCHEDULERS
+============================================================
+
+Notification #1
+
+0F 28 14 00 03 0A 01 01 01 13 07 0D 0B 2C 00 00 75 0B 01 00
+
+Décodage :
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 28	: longueur de la payload incluant la checksum (longueur de toutes les octets des notifications à recevoir après cet octet et avant la séquence FFFF de fin) 
+Octets 3-4   : 1400	: commande Request Scheduler
+Octet 5      : 03	: Nombre de schedulers (dans la page ?)
+=== Premier scheduler ===
+Octet 6      : 0A	: slot ID = 0
+Octet 7      : 01	: état (0 = inactivé, 1 = activé)
+Octet 8      : 01	: action ON
+Octet 9      : 01	: weekday Mask (0x01=dimanche, 0x02=lundi, 0x04=mardi, …, 0x40=samedi, 0x7F=tous les jours, 0x00=une seule fois à l'heure indiquée ?)
+Octet 10     : 13	: année
+Octet 11     : 07 	: mois
+Octet 12     : 0D	: jour
+Octet 13     : 0B	: heure
+Octet 14     : 2C	: minute
+Octets 15-16 : 0000	: valeur fixe
+Octet 17     : 75	: ??? - clef d'unicité
+=== Second scheduler ===
+Octet 18     : 0B	: slot ID = 1
+Octet 19     : 01	: état (0 = inactivé, 1 = activé)
+Octet 20     : 00	: action OFF
+
+Notification #2
+
+7F 13 07 0D 0E 0F 00 00 E4 0C 00 01 00 13 08 09 0A 0B 00 00
+
+Décodage :
+
+Octet 1      : 7F	: weekday Mask (0x01=dimanche, 0x02=lundi, 0x04=mardi, …, 0x40=samedi, 0x7F=tous les jours, 0x00=une seule fois à l'heure indiquée ?)
+Octet 2      : 13	: année
+Octet 3	     : 07	: mois
+Octet 4	     : 0D	: jour
+Octet 5      : OE	: heure
+Octet 6      : 0F	: minute
+Octet 7-8    : 0000	: valeur fixe
+Octet 9      : E4	: ??? - clef d'unicité
+=== Troisième scheduler ===
+Octet 10     : 0C	: slot ID = 2
+Octet 11     : 00 	: état (0 = inactivé, 1 = activé)
+Octet 12     : 01	: action ON
+Octet 13     : 00	: weekday Mask (0x01=dimanche, 0x02=lundi, 0x04=mardi, …, 0x40=samedi, 0x7F=tous les jours, 0x00=une seule fois à l'heure indiquée ?)
+Octet 14     : 13	: année
+Octets 15-16 : 08	: mois
+Octet 16     : 09	: jour
+Octets 17    : 0A	: heure
+Octet 18     : 0B	: minute
+Octet 19-20  : 0000	: valeur fixe
+
+Notification #3
+
+5B 4C FF FF
+
+Décodage :
+
+Octet 1	     : 5B	: ??? - clef d'unicité
+Octet 2      : 4C	: Checksum global
+Octets 3-4   : FFFF	: Fin de transmission
+
+============================================================
+REQUEST SECONDE PAGE
+============================================================
+
+TRAME DE REQUÊTE
+
+Valeur :
+
+0F 06 14 00 01 00 00 16 FF FF
+
+Décodage :
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 06	: longueur de la payload incluant la checksum
+Octets 3-4   : 1400	: commande Request Scheduler
+Octet 5      : 01	: numéro de slot (0 = première page, 1 = seconde page)
+Octets 6-7   : 0000	: valeur fixe
+Octet 8      : 16	: checksum -> 1 + somme des octets 3 à 7 inclus
+Octets 9-10  : FFFF	: séquence de fin statique
+
+Notification :
+
+0F 10 14 00 05 0B 01 00 01 13 07 0E 01 01 00 00 40 91 FF FF
+
+Décodage :
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 10	: longueur de la payload incluant la checksum
+Octets 3-4   : 1400	: commande Request Scheduler
+Octet 5      : 05	: nombre de schedulers actifs
+Octet 6      : 0B	: slot ID
+Octet 7      : 01	: état (0 = inactivé, 1 = activé)
+Octet 8      : 00	: action programmée (0 = OFF, 1 = ON)
+Octet 9      : 01	: weekday Mask (0x01=dimanche, 0x02=lundi, 0x04=mardi, …, 0x40=samedi, 0x7F=tous les jours, 0x00=une seule fois à l'heure indiquée ?)
+Octet 10     : 13	: Année (2013)
+Octet 11     : 07	: Mois
+Octet 12     : 0E	: Jour
+Octet 13     : 01	: Heure
+Octet 14     : 01	: Minute
+Octets 15-16 : 0000	: valeur fixe
+Octets 17-18 : 40	: ??? - clef d'unicité
+Octet 18     : 91	: checksum -> 1 + somme des octets 3 à 18 inclus
+Octets 19-20 : FFFF	: séquence de fin statique
+
+============================================================
+2. SET SCHEDULER
+============================================================
+
+OBJECTIF
+
+Créer, modifier ou détruire un scheduler.
+
+============================================================
+TRAME DE REQUÊTE
+============================================================
+
+Valeur :
+
+0F 0F 13 00 01 00 01 01 01 13 07 0E 0E 1A 00 00 68 FF FF
+
+Décodage :
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 0F	: longueur de la payload incluant la checksum
+Octets 3-4   : 1300	: commande Set Scheduler
+Octet 5      : 01	: Mode (0 = Ajouter, 1 = Modifier, 2 = Supprimer)
+Octet 6      : 00	: Slot ID
+Octet 7      : 01	: Etat (0 = Inactif, 1 = Actif)
+Octet 8      : 01	: Action (0 = OFF, 1 = ON)
+Octet 9      : 01	: Weekday Mask (0x01=dimanche, 0x02=lundi, 0x04=mardi, …, 0x40=samedi, 0x7F=tous les jours, 0x00=une seule fois à l'heure indiquée ?)
+Octet 10     : 13	: Année
+Octet 11     : 07	: Mois
+Octet 12     : 0E	: Jour
+Octet 13     : 0E	: Heure
+Octet 14     : 1A	: Minute
+Octets 15-16 : 0000	: valeur fixe
+Octet 17     : 68	: checksum -> 1 + somme des octets 3 à 16 inclus
+Octets 18-19 : FFFF	: séquence de fin statique
+
+============================================================
+NOTIFICATION
+============================================================
+
+Valeur :
+
+0F 06 13 00 01 00 00 15 FF FF
+
+Décodage :
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 06	: longueur de la payload incluant la checksum
+Octets 3-4   : 1300	: commande Set Scheduler 
+Octet 5      : 01	: résultat (0 = succès, 1 = échec)
+Octets 6-7   : 0000	: valeur fixe
+Octet 8      : 15	: checksum -> 1 + somme des octets 3 à 7 inclus
+Octets 9-10  : FFFF	: séquence de fin statique
+
+============================================================
+3. RESET SCHEDULER
+============================================================
+
+TRAME DE REQUÊTE
+
+Valeur :
+
+0F 0F 13 00 02 0C 00 00 00 00 00 00 00 00 00 22 FF FF
+
+Décodage :
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 06	: longueur de la payload incluant la checksum
+Octets 3-4   : 1300	: commande Set Scheduler
+Octet 5      : 02	: supprimer un Scheduler
+Octet 6      : 0C	: Slot ID à supprimer
+Octets 7-15  : 000000000000000000
+Octet 16     : 22	: checksum -> 1 + somme des octets 3 à 15 inclus
+Octets 17-18 : FFFF	: séquence de fin statique
+
+Les SLOT ID vont de 0x01 à 0x0Cx soit 12 schedulers possible.
+Pages : elles sont au nombre de 3 : 0, 1, 2
+Chaque page peut contenir 4 schedulers. 
+
+
+============================================================
+FIN DU FICHIER 4
+SECTION SCHEDULER
+============================================================

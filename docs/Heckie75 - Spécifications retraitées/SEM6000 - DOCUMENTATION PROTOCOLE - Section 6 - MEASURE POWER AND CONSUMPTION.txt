@@ -1,0 +1,349 @@
+SEM6000 - DOCUMENTATION PROTOCOLE
+SECTION 6 : MEASURE POWER AND CONSUMPTION
+
+Source : API.md
+
+============================================================
+1. PRÉSENTATION GÉNÉRALE
+============================================================
+
+Cette section couvre :
+
+- Capture instantanée des mesures électriques
+- Lecture des historiques de consommation
+- Réinitialisation des données stockées
+
+Commandes utilisées :
+
+0400 = Capture Measurement
+0A00 = Day History
+0B00 = Month History
+0C00 = Year History
+0F00 = Reset Data
+
+============================================================
+2. CAPTURE MEASUREMENT
+============================================================
+
+OBJECTIF
+
+Lire les mesures temps réel du SEM6000.
+
+Informations remontées :
+
+- Etat ON/OFF
+- Puissance
+- Tension
+- Courant
+- Fréquence
+- Consommation totale
+
+============================================================
+TRAME DE REQUÊTE
+============================================================
+
+Valeur :
+
+0F 05 04 00 00 00 05 FF FF
+
+Décodage :
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 05	: longueur de la payload incluant la checksum
+Octets 3-4   : 0400	: commande Capture Measurement
+Octets 5-6   : 0000	: valeur fixe
+Octet 7      : 05	: checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 8-9   : FFFF	: séquence de fin statique
+
+============================================================
+NOTIFICATION DE RÉPONSE - (HARDWARE <= V2)
+============================================================
+
+Valeur :
+
+0F 11 04 00 01 00 00 00 EB 00 0C 32 00 00 00 00 00 00 2F
+
+============================================================
+DÉCODAGE
+============================================================
+
+Octet 1      : 0F		: séquence de début statique
+Octet 2      : 11		: longueur de la payload incluant la checksum
+Octets 3-4   : 0400		: commande Capture Measurement
+Octet 5      : 01		: Power State (0 = OFF, 1 = ON)
+Octets 6-8   : 000000		: Power (mW)
+Octet 9      : EB		: Voltage (235 V)
+Octets 10-11 : 000C		: Current (mA)
+Octet 12     : 32		: Frequency (Hz)
+Octets 13-14 : 0000		: ???
+Octets 15-18 : 00000000 	: Total Consumption (Toujours 0 sur HW < 3)
+Octet 19     : 2F		: checksum -> 1 + somme des octets 3 à 18 inclus
+
+ATTENTION : pas de fin de séquence FFFF
+
+============================================================
+NOTIFICATION DE RÉPONSE - CAS HARDWARE >= V3
+============================================================
+
+Valeur :
+
+0F 0F 04 00 01 00 88 50 DC 00 D6 32 01 00 00 00 00 67 2A
+
+============================================================
+DÉCODAGE
+============================================================
+
+Octet 1      : 0F		: séquence de début statique
+Octet 2      : 0F		: longueur de la payload incluant la checksum
+Octets 3-4   : 0400		: commande Capture Measurement
+Octet 5      : 01		: Etat relais ( 0 = OFF, 1 = ON)
+Octets 6-8   : 008850		: Puissance (mW)
+Octet 9      : DC		: Tension (220 volt)
+Octets 10-11 : 00D6		: Courant (mA)
+Octet 12     : 32		: Fréquence
+Octets 13-14 : 0100		: ???
+Octets 15-18 : 00000067		: Consommation totale (wh) (Disponible uniquement en HW >= 3)
+Octet 19     : 2A		: checksum -> 1 + somme des octets 3 à 18 inclus
+
+ATTENTION : pas de fin de séquence FFFF
+
+============================================================
+3. REQUEST MEASUREMENTS
+============================================================
+
+OBJECTIF
+
+Lire l'historique de consommation.
+
+3 commandes :
+
+0A00 = dernières 24h
+0B00 = derniers 30 jours
+0C00 = dernière année
+
+PRECISION SUR ENCODAGE FORMAT ANNUEL ET MENSUEL
+
+Format Annuel (0x0C00) & Mensuel (0x0B00) :Blocs de 4 octets (B0 B1 B2 B3). 
+-  B0..B2 (24 bits Big-Endian) = Consommation globale de la période en Watt-heures (Wh.
+-  B3 (8 bits) = % de la consommation totale réalisée pendant les heures creuse (HC). Utilisée en particulier pour calculer les coûts dans le cas d'un contrat HP/HC.
+
+Format Journalier 24H (0x0A00) :Blocs de 2 octets (B0 B1 16 bits Big-Endian) = Consommation horaire directe en Watt-heures (Wh).   
+
+============================================================
+TRAME DE REQUÊTE - Exemple
+============================================================
+
+Valeur :
+
+0F 05 0B 00 00 00 0C FF FF
+
+============================================================
+DÉCODAGE
+============================================================
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 05	: longueur de la payload incluant la checksum
+Octets 3-4   : 0B00	: commande Request Measurements - 0A = jour, 0B = mois, 0C = année
+Octets 6-7   : 0000	: valeur fixe
+Octet 8      : 0C	: checksum -> 1 + somme des octets 3 à 7 inclus
+Octets 9-10  : FFFF	: séquence de fin statique
+
+============================================================
+3.1. REQUEST YEAR HISTORY - NOTIFICATIONS RETURNED - Historique des 12 derniers mois - 4 octets pour chaque consommation mensuelle exprimée en wh
+============================================================
+
+Command : 0C00
+
+============================================================
+NOTIFICATION 1
+============================================================
+
+0f 33 0c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 33	: longueur de la payload incluant la checksum
+Octets 3-4   : 0C00	: commande Request Measurements - 0A = jour, 0B = mois, 0C = année
+Octets 5-8   : 00000000 : consommation mensuelle en wh 11 mois avant le mois courant (avril si le mois courant est mars)
+Octets 9-12  : 00000000 : consommation mensuelle en wh 10 mois avant le mois courant (mai si le mois courant est mars)
+Octets 13-16 : 00000000 : consommation mensuelle en wh 09 mois avant le mois courant (juin …)
+Octets 17-20 : 00000000 : consommation mensuelle en wh 08 mois avant le mois courant (juillet …)
+
+============================================================
+NOTIFICATION 2
+============================================================
+
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+
+Octets 1-4   : 00000000 : consommation mensuelle en wh 07 mois avant le mois courant (aout …)
+Octets 5-8   : 00000000 : consommation mensuelle en wh 06 mois avant le mois courant (septembre …)
+Octets 9-12  : 00000000 : consommation mensuelle en wh 05 mois avant le mois courant (octobre …)
+Octets 13-16 : 00000000 : consommation mensuelle en wh 04 mois avant le mois courant (novembre …)
+Octets 17-20 : 00000000 : consommation mensuelle en wh 03 mois avant le mois courant (décembre …)
+
+
+============================================================
+NOTIFICATION 3
+============================================================
+
+00 00 00 00 00 00 00 00 00 04 e3 00 f4 ff ff
+
+Octets 1-4   : 00000000 : consommation mensuelle en wh 02 mois avant le mois courant (janvier …)
+Octets 5-8   : 00000000 : consommation mensuelle en wh 01 mois avant le mois courant (février …)(c'est le mois précédent le mois courant)
+Octets 9-12  : 0004E300 : consommation mensuelle en wh 00 pendant le mois courant - (exemple : le mois courant est le mois de mars)
+Octet 13     : F4	: checksum -> (1 + somme des octets (notification 1, octet 3) à (notification 3, octet 12) inclus
+Octets 14-15 : FFFF	: séquence de fin statique
+
+============================================================
+3.2. MONTH HISTORY - NOTIFICATIONS RETURNED - Historique des 30 derniers jours - 4 octets pour chaque consommation journalière exprimée en wh
+============================================================
+
+Command : 0B00
+
+============================================================
+NOTIFICATION 1
+============================================================
+
+0f 7b 0b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 7B	: longueur de la payload incluant la checksum
+Octets 3-4   : 0B00	: commande Request Measurements - 0A = jour, 0B = mois, 0C = année
+Octets 5-8   : 00000000 : consommation journalière en wh 29 jours avant le jour courant 
+Octets 9-12  : 00000000 : consommation journalière en wh 28 jours avant le jour courant
+Octets 13-16 : 00000000 : consommation journalière en wh 27 jours avant le jour courant
+Octets 17-20 : 00000000 : consommation journalière en wh 26 jours avant le jour courant
+
+
+============================================================
+NOTIFICATION 2 à 6
+============================================================
+
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 : consommation journalière en wh 25/24/23/22/21 jours avant le jour courant
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 : consommation journalière en wh 20/19/18/17/16 jours avant le jour courant
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 : consommation journalière en wh 15/14/13/12/11 jours avant le jour courant
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 : consommation journalière en wh 10/09/08/07/06 jours avant le jour courant
+00 00 00 00 00 00 e3 00 00 01 37 00 00 01 23 00 00 01 37 00 : consommation journalière en wh 05/04/03/02/01 jours avant le jour courant
+
+============================================================
+NOTIFICATION 7
+============================================================
+
+00 00 6f 00 f2 ff ff
+
+Octets 1-4   	: 00006F00	: consommation journalière en wh 0 jours avant le jour courant (c'est le jour courant)
+Octet 5		: F2		: checksum -> (1 + somme des octets (notification 1, octet 3) à (notification 7, octet 4) inclus
+Octets 6-7	: FFFF		: séquence de fin statique
+
+============================================================
+3.3. DAY HISTORY - NOTIFICATIONS RETURNED - Historique des 24 dernières heures - 2 octets pour chaque consommation horaraire exprimée en wh
+============================================================
+
+Commande : 0A00
+
+============================================================
+NOTIFICATION 1
+============================================================
+
+0f 33 0a 00 00 0e 00 0e 00 0e 00 0e 00 0c 00 09 00 08 00 0b
+
+Octet 1      	: 0F	: séquence de début statique
+Octet 2      	: 33	: longueur de la payload incluant la checksum
+Octets 3-4   	: 0A00	: commande Request Measurements - 0A = jour, 0B = mois, 0C = année
+Octets 5-6   	: 000E	: consommation horaire en wh 23 heures avant l'heure courante
+Octets 7-8   	: 000E	: consommation horaire en wh 22 heures avant l'heure courante
+Octets 9-10    	: 000E	: consommation horaire en wh 21 heures avant l'heure courante
+Octets 11-12   	: 000E	: consommation horaire en wh 20 heures avant l'heure courante
+Octets 13-14   	: 000C	: consommation horaire en wh 19 heures avant l'heure courante
+Octets 15-16   	: 0009	: consommation horaire en wh 18 heures avant l'heure courante
+Octets 17-18   	: 0008	: consommation horaire en wh 17 heures avant l'heure courante
+Octets 19-20   	: 000B	: consommation horaire en wh 16 heures avant l'heure courante
+
+
+============================================================
+NOTIFICATION 2
+============================================================
+
+00 0e 00 0e 00 11 00 0f 00 10 00 0f 00 0d 00 0e 00 0e 00 0e : consommation horaire en wh 15/14/13/12/11/10/09/08/07/06 heures avant l'heure courante
+
+============================================================
+NOTIFICATION 3
+============================================================
+
+00 0e 00 0e 00 0e 00 0e 00 0d 00 00 42 ff ff
+
+Octets 1-2   	: 000E	: consommation horaire en wh 05 heures avant l'heure courante
+Octets 3-4   	: 000E	: consommation horaire en wh 04 heures avant l'heure courante
+Octets 5-6    	: 000E	: consommation horaire en wh 03 heures avant l'heure courante
+Octets 7-8   	: 000E	: consommation horaire en wh 02 heures avant l'heure courante
+Octets 9-10   	: 000D	: consommation horaire en wh 01 heures avant l'heure courante (c'est l'heure précédent l'heure courante)
+Octets 11-12   	: 0000	: consommation horaire en wh 00 heures avant l'heure courante (c'est l'heure courante)
+Octet 13	: 42	: checksum -> (1 + somme des octets (notification 1, octet 3) à (notification 3, octet 12) inclus
+Octets 14-15	: FFFF	: séquence de fin statique
+
+============================================================
+4. RESET DATA
+============================================================
+
+OBJECTIF
+
+Réinitialisation des données mémoire.
+
+============================================================
+TRAME DE REQUÊTE
+============================================================
+
+Valeur :
+
+0F 09 0F 00 00 00 00 00 00 00 10 FF FF
+
+============================================================
+DÉCODAGE
+============================================================
+
+Octet 1      : 0F		: séquence de début statique
+Octet 2      : 09		: longueur de la payload incluant la checksum
+Octets 3-4   : 0F00		: commande reset
+Octet 5      : 00		: Type of Reset (00 = Factory Reset, 02 = Reset Consumption Data)
+Octets 6-10  : 0000000000	: valeur fixe
+Octet 11     : 10		: checksum -> 1 + somme des octets 3 à 10 inclus
+Octets 12-13 : FFFF		: séquence de fin statique
+
+============================================================
+NOTIFICATION
+============================================================
+
+Valeur :
+
+0F 05 0F 00 00 00 10 FF FF
+
+============================================================
+DÉCODAGE
+============================================================
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 05	: longueur de la payload incluant la checksum
+Octets 3-4   : 0F00	: commande reset
+Octet 5      : 00	: résultat ( 0 = succès, 1 = échec)
+Octet 6      : 00	: type de reset (00 = Factory Reset, 02 = Reset Consumption Data)
+Octet 7      : 10	: checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 8-9   : FFFF	: séquence de fin statique
+
+============================================================
+OBSERVATIONS IMPORTANTES
+============================================================
+
+- Les réponses d'historique sont fragmentées sur plusieurs
+  notifications BLE.
+
+- Les formats changent entre HW < 3 et HW >= 3.
+
+- Certaines réponses n'incluent pas le FFFF final lorsque
+  la taille maximale du paquet BLE est atteinte.
+
+- L'utilisation du MTU 160 est fortement recommandée pour
+  simplifier la reconstruction des réponses.
+
+============================================================
+FIN DU FICHIER 6
+SECTION MEASURE POWER AND CONSUMPTION
+============================================================

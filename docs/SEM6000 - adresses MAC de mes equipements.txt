@@ -1,0 +1,12 @@
+Bureau			b0:b1:13:6b:2d:d7
+Chambre Cédric		b0:b1:13:6b:43:f0
+Congélateur cuisine	94:a9:a8:18:db:fd
+Lave linge		a3:00:00:00:47:93
+Lave Vaisselle		94:a9:a8:18:db:e5
+Salon			b0:b1:13:6c:0c:ba
+Sèche linge		a3:00:00:00:40:59
+Smart EQ		b0:b1:13:6c:2e:20
+Vélo			a3:00:00:00:45:25
+Théoule			94:a9:a8:1a:37:0c
+	
+

@@ -70,9 +70,26 @@ Validés par croisement entre captures BLE et exports CSV de l'application const
 
 | Registre | Méthode `SEM6000Device` | Type & Taille | Période en cours (Présent) | Période précédente (N-1) | Cinématique de mise à jour |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Horaire (`0x0A00`)** | `requestDayHistory` | `uint16_t[24]` | **Slot `[23]`** | Slot `[22]` (H-1) | S'incrémente en continu (Wh). À chaque heure pile (`HH:00:00`), décale vers la gauche et repart à `0`. |
-| **Journalier (`0x0B00`)** | `requestMonthHistory` | `uint32_t[30]` | **Slot `[29]`** | Slot `[28]` (Hier) | Mis à jour **à chaque heure pile (`HH:00:00`)** par addition de l'heure qui vient de se fermer. |
-| **Mensuel (`0x0C00`)** | `requestYearHistory` | `uint32_t[12]` | **Slot `[11]`** | Slot `[10]` (M-1) | Mis à jour **à chaque heure pile (`HH:00:00`)** par addition de l'heure qui vient de se fermer. |
+| **Horaire (`0x0A00`)** | `requestDayHistory` | `uint16_t[24]` (2 octets/slot) | **Slot `[23]`** | Slot `[22]` (H-1) | S'incrémente en continu (Wh). À chaque heure pile (`HH:00:00`), décale vers la gauche et repart à `0`. |
+| **Journalier (`0x0B00`)** | `requestMonthHistory` | `uint32_t[30]` (4 octets/slot) | **Slot `[29]`** | Slot `[28]` (Hier) | Mis à jour **à chaque heure pile (`HH:00:00`)** par addition de l'heure qui vient de se fermer. |
+| **Mensuel (`0x0C00`)** | `requestYearHistory` | `uint32_t[12]` (4 octets/slot) | **Slot `[11]`** | Slot `[10]` (M-1) | Mis à jour **à chaque heure pile (`HH:00:00`)** par addition de l'heure qui vient de se fermer. |
+
+#### Structure Quadri-Octets des Historiques Journaliers et Mensuels (`0x0B00` & `0x0C00`)
+Chaque tranche historique (jour ou mois) est encodée sur **4 octets bruts `[B0, B1, B2, B3]`** :
+* **Octets `[B0, B1, B2]` (24 bits Big-Endian) — Énergie Totale (Wh) :**
+  $$E_{\text{total}} = (B_0 \ll 16) \mid (B_1 \ll 8) \mid B_2$$
+  C'est cette valeur que la méthode `SEM6000Device::requestMonthHistory()` et `requestYearHistory()` extrait directement.
+* **Octet `B3` (8 bits non signé) — Ratio d'Heures Creuses (0 à 100 %) :**
+  * `B3` représente formellement le **pourcentage d'énergie consommé durant le créneau Heures Creuses (HC)** de la période considérée ($0 \le B_3 \le 100$).
+  * Démontré empiriquement sur banc de test (`exp_08` & `exp_09`) à travers 42 points de mesures sur plusieurs prises (charge purement nocturne de véhicule électrique mesurée à 98-99%, consommations diurnes mixtes à 54-68%, charges exclusivement en heures pleines à 0%).
+
+#### Algorithme de Calcul des Coûts de l'Application Mobile
+La prise SEM6000 ne stocke **aucun centime d'euro en mémoire**. C'est l'application smartphone qui calcule dynamiquement à l'affichage les coûts de chaque jour et mois sur la base des tarifs configurés :
+$$E_{\text{HC}} = E_{\text{total}} \times \frac{B_3}{100} \quad ; \quad E_{\text{HP}} = E_{\text{total}} \times \left(1 - \frac{B_3}{100}\right)$$
+$$\text{Coût (€)} = \frac{E_{\text{HC}} \times P_{\text{HC}} + E_{\text{HP}} \times P_{\text{HP}}}{1000 \times 100}$$
+*(où $P_{\text{HC}}$ et $P_{\text{HP}}$ sont les tarifs en centimes d'euro par kWh).*
+
+Ce mécanisme explique pourquoi la modification des tarifs dans l'application mobile recalcule instantanément l'intégralité des coûts affichés sur 30 jours et 12 mois sans aucune écriture en mémoire sur la prise.
 
 ### 2.5 Comportement du Firmware : Synchronisation, Heure Pile, Surcharge & Coupure Secteur
 Les expérimentations menées sur banc de test réel (`experiments/exp_02` à `exp_07`) ont permis d'établir avec une certitude absolue la cinématique interne du microprogramme du SEM6000 :
@@ -119,6 +136,11 @@ Les expérimentations menées sur banc de test réel (`experiments/exp_02` à `e
   * Le créneau horaire est rejoué.
   * Au second passage de `02:00:00`, la prise déclenche une **seconde rotation prématurée**.
   * Le slot fermé lors du premier passage (`hourlyWh[22]`) est violemment poussé dans `hourlyWh[21]`, créant un **slot fantôme artificiel** et faussant l'ensemble de l'historique horaire.
+
+#### 7. Intégration Heures Creuses (HC) & Octet Ratio B3 (`exp_08` & `exp_09`)
+* **Décompte des HC :** Lorsque le mode réduit est configuré (`setReducedPeriod`), le firmware comptabilise en interne la quote-part d'énergie consommée pendant ce créneau.
+* **Scellement du Ratio :** À chaque franchissement d'heure pile et lors de la fermeture de la journée à minuit, le firmware calcule le ratio $B_3 = \text{round}\left(100 \times \frac{E_{\text{HC}}}{E_{\text{total}}}\right)$ et le stocke dans le 4ᵉ octet du slot historique journalier (`0x0B00`) et mensuel (`0x0C00`).
+* **Conservation à l'échelle :** Ce ratio est strictement borné entre 0 et 100 %, sans aucune corruption possible de l'énergie totale qui reste isolée sur les 3 premiers octets `[B0, B1, B2]`.
 
 ---
 

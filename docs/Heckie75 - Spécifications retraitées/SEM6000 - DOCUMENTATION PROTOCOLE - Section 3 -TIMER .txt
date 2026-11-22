@@ -1,0 +1,127 @@
+SEM6000 - DOCUMENTATION PROTOCOLE
+SECTION 3 : TIMER
+
+Source : API.md
+
+============================================================
+1. GET TIMER STATUS
+============================================================
+
+TRAME DE REQUÊTE
+
+Valeur :
+0F 05 09 00 00 00 0A FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 05        : longueur de la payload incluant la checksum
+Octets 3-4   : 0900      : commande Request Timer Status
+Octets 5-6   : 0000      : valeur fixe
+Octet 7      : 0A        : checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 8-9   : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE
+
+Valeur :
+0F 0E 09 00 01 10 04 10 08 07 13 01 51 45 00 E8 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0E        : longueur de la payload incluant la checksum
+Octets 3-4   : 0900      : commande Timer Status
+Octet 5      : 01        : action programmée (01 = ON, 02 = OFF)
+Octet 6      : 10        : nombre des secondes de la date UTC de déclenchement programmée : 16
+Octet 7      : 04        : nombre des minutes de la date UTC de déclenchement programmée : 04
+Octet 8      : 10        : nombre des heures de la date UTC de déclenchement programmée : 16
+Octet 9      : 08        : nombre des jours de la date UTC de déclenchement programmée : 08
+Octet 10     : 07        : nombre des mois de la date UTC de déclenchement programmée : 07
+Octet 11     : 13        : nombre des années de la date UTC de déclenchement programmée : (20)19/07/08-16:04:16
+Octets 12-14 : 01 51 45  : durée d'exécution calculée par le SEM6000 au moment du SET : Heure-Minutes-Secondes !!!!
+Octet 15     : 00        : valeur fixe
+Octet 16     : E8        : checksum -> 1 + somme des octets 3 à 15 inclus
+Octets 17-18 : FFFF      : séquence de fin statique
+
+============================================================
+2. SET TIMER
+============================================================
+
+TRAME DE REQUÊTE
+
+Valeur :
+0F 0C 08 00 01 2D 1C 16 07 07 13 00 00 8A FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0C        : longueur de la payload incluant la checksum
+Octets 3-4   : 0800      : commande Set Timer
+Octet 5      : 01        : action timer (01 = ON, 02 = OFF) - passe à 00 lors le timer est échu ou stoppé
+Octet 6      : 2D        : nombre des secondes de la date UTC de déclenchement à programmer : 45
+Octet 7      : 1C        : nombre des minutes de la date UTC de déclenchement à programmer : 28
+Octet 8      : 16        : nombre des heures de la date UTC de déclenchement à programmer :  22 
+Octet 9      : 07        : nombre des jours de la date UTC de déclenchement à programmer : 7
+Octet 10     : 07        : nombre des mois de la date UTC de déclenchement à programmer : 7
+Octet 11     : 13        : nombre des dizaines années de la date UTC de déclenchement à programmer : (20)19/07/07-22:28:45
+Octets 12-13 : 0000      : valeur fixe
+Octet 14     : 8A        : checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 15-16 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE
+
+Valeur :
+0F 04 08 00 00 09 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 04        : longueur de la payload incluant la checksum
+Octets 3-4   : 0800      : commande Set Timer
+Octet 5      : 00        : statut (0 = succès, 1 = échec)
+Octet 6      : 09        : checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF      : séquence de fin statique
+
+============================================================
+3. STOP TIMER
+============================================================
+
+TRAME DE REQUÊTE
+
+Valeur :
+0F 0C 08 00 00 00 00 00 00 00 00 00 00 09 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0C        : longueur de la payload incluant la checksum
+Octets 3-5   : 0800	 : commande Stop Timer
+Octet 5	     : 00    	 : valeur de demande d'arrêt du timer
+Octet 6      : 00        : secondes
+Octet 7      : 00        : minutes
+Octet 8      : 00        : heures
+Octet 9      : 00        : jour
+Octet 10     : 00        : mois
+Octet 11     : 00        : année
+Octets 12-13 : 0000      : valeur fixe
+Octet 14     : 09        : checksum -> 1 + somme des octets 3 à 13 inclus
+Octets 15-16 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE
+
+Valeur :
+0F 04 08 00 00 09 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 04        : longueur de la payload incluant la checksum
+Octets 3-4   : 0800	 : commande Stop Timer
+Octet 5      : 00	 : statut (0 = succès, 1 = échec)
+Octet 6      : 09	 : checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF	 : séquence de fin statique
+
+============================================================
+FIN DU FICHIER 3
+SECTION TIMER
+============================================================

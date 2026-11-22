@@ -1,0 +1,137 @@
+SEM6000 - DOCUMENTATION PROTOCOLE
+SECTION 1 : PIN
+
+Source : API.md
+
+============================================================
+1. AUTHORIZATION WITH PIN
+============================================================
+
+TRAME DE REQUÊTE
+
+Valeur :
+0F 0C 17 00 00 00 00 00 00 00 00 00 00 18 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0C        : longueur de la payload incluant la checksum
+Octets 3-4   : 1700      : commande Authorization
+Octet 5      : 00        : requête d'authentification
+Octets 6-9   : 00000000  : PIN value (0000 dans cet exemple)
+Octets 10-13 : 00000000  : valeur statique
+Octet 14     : 18        : checksum -> 1 + somme des octets 3 à 13 inclus 
+Octets 15-16 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE
+
+Valeur :
+0F 06 17 00 00 00 00 18 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 06        : longueur de la payload incluant la checksum
+Octets 3-4   : 1700      : commande Login
+Octet 5      : 00        : statut (0 = succès, 1 = échec)
+Octets 6-7   : 0000      : valeur fixe
+Octet 8      : 18        : checksum -> 1 + somme des octets 3 à 7 inclus
+Octets 9-10  : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+100 %
+
+Justification :
+La structure complète de la requête et de la notification est explicitement documentée.
+
+
+============================================================
+2. CHANGE PIN
+============================================================
+
+TRAME DE REQUÊTE
+
+Valeur :
+0F 0C 17 00 01 01 02 03 04 00 00 00 00 23 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0C        : longueur de la payload incluant la checksum
+Octets 3-4   : 1700      : commande PIN
+Octet 5      : 01        : changement de PIN
+Octets 6-9   : 01020304  : nouveau PIN
+Octets 10-13 : 00000000  : ancien PIN
+Octet 14     : 23        : checksum -> 1 + somme des octets 3 à 13 inclus
+Octets 15-16 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE
+
+Valeur :
+0F 06 17 00 00 01 00 19 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 06        : longueur de la payload incluant la checksum
+Octets 3-4   : 1700      : commande PIN
+Octet 5      : 00        : succès
+Octet 6      : 01        : opération Change PIN
+Octet 7      : 00        : réservé
+Octet 8      : 19        : checksum -> 1 + somme des octets 3 à 7 inclus
+Octets 9-10  : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+100 %
+
+Justification :
+Tous les champs sont décrits explicitement.
+
+
+============================================================
+3. RESET PIN TO "0000"
+============================================================
+
+TRAME DE REQUÊTE
+
+Valeur :
+0F 0C 17 00 02 00 00 00 00 00 00 00 00 20 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0C        : longueur de la payload incluant la checksum
+Octets 3-4   : 1700      : commande Authorization
+Octet 5      : 02        : Reset PIN
+Octets 6-13  : 0000000000000000 : valeur statique
+Octet 14     : 20        : checksum -> 1 + somme des octets 3 à 13 inclus
+Octets 15-16 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE
+
+Valeur :
+0F 06 17 00 00 02 00 20 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 06        : longueur de la payload incluant la checksum
+Octets 3-4   : 1700      : commande PIN
+Octet 5      : 00        : succès
+Octet 6      : 02        : opération Reset PIN
+Octet 7      : 00        : réservé
+Octet 8      : 20        : checksum -> 1 + somme des octets 3 à 7 inclus
+Octets 9-10  : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+100 %
+
+Justification :
+Description complète de la structure présente dans la documentation.
+
+============================================================
+FIN DE LA SECTION PIN
+============================================================

@@ -1,0 +1,130 @@
+SEM6000 - DOCUMENTATION PROTOCOLE
+SECTION 5 : RANDOM MODE
+
+Source : API.md
+
+============================================================
+1. PRÉSENTATION GÉNÉRALE
+============================================================
+
+Le mode Random permet de simuler une présence en effectuant
+des commutations aléatoires dans une plage horaire définie.
+
+Le fonctionnement repose sur :
+
+- un état ON/OFF
+- un masque de jours
+- une heure de début
+- une heure de fin
+
+Commandes utilisées :
+
+1600 = Get Random Mode
+1500 = Set Random Mode
+
+============================================================
+2. GET RANDOM MODE
+============================================================
+
+OBJECTIF
+
+Lire la configuration actuelle du mode aléatoire.
+
+============================================================
+TRAME DE REQUÊTE
+============================================================
+
+Valeur :
+
+0F 05 16 00 00 00 17 FF FF
+
+Décodage :
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 05	: longueur de la payload incluant la checksum
+Octets 3-4   : 1600	: commande Get Random Mode Status
+Octets 5-6   : 0000	: valeur fixe
+Octet 7      : 17	: checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 8-9   : FFFF	: séquence de fin statique
+
+============================================================
+NOTIFICATION DE RÉPONSE
+============================================================
+
+Valeur :
+
+0F 0B 16 00 01 55 02 03 04 05 00 00 7B FF FF
+
+============================================================
+DÉCODAGE COMPLET
+============================================================
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 0B	: longueur de la payload incluant la checksum
+Octets 3-4   : 1600	: commande Get Random Mode
+Octet 5      : 01	: Etat Random Mode (0 = Désactivé, 1 = Activé)
+Octet 6      : 55	: Weekday Mask 0x55 = 01010101b
+Octet 7      : 02	: Heure début
+Octet 8      : 03	: Minute début
+Octet 9      : 04	: Heure fin
+Octet 10     : 05	: Minute fin
+Octets 11-12 : 0000	: valeur fixe
+Octet 13     : 7B	: checksum -> 1 + somme des octets 3 à 12 inclus
+Octets 14-15 : FFFF	: séquence de fin statique
+
+============================================================
+3. SET RANDOM MODE
+============================================================
+
+OBJECTIF
+
+Créer ou modifier la configuration du mode aléatoire.
+
+============================================================
+TRAME DE REQUÊTE
+============================================================
+
+Valeur :
+
+0F 0B 15 00 01 7F 02 03 04 05 00 00 A4 FF FF
+
+============================================================
+DÉCODAGE
+============================================================
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 0B	: longueur de la payload incluant la checksum
+Octets 3-4   : 1500	: commande Set Random Mode
+Octet 5      : 01	: Etat (0 = OFF,1 = ON)
+Octet 6      : 7F	: Weekday Mask
+Octet 7      : 02	: Heure début
+Octet 8      : 03	: Minute début
+Octet 9      : 04	: Heure fin
+Octet 10     : 05	: Minute fin
+Octets 11-12 : 0000	: valeur fixe
+Octet 13     : A4	: checksum -> 1 + somme des octets 3 à 12 inclus
+Octets 14-15 : FFFF	: séquence de fin statique
+
+============================================================
+NOTIFICATION DE RÉPONSE
+============================================================
+
+Valeur :
+
+0F 04 15 00 00 16 FF FF
+
+============================================================
+DÉCODAGE
+============================================================
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 04	: longueur de la payload incluant la checksum
+Octets 3-4   : 1500	: commande Set Random Mode
+Octet 5      : 00	: résultat (0 = succès, 1 = échec)
+Octet 6      : 16	: checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF	: séquence de fin statique
+
+============================================================
+FIN DU FICHIER 5
+SECTION RANDOM MODE
+============================================================

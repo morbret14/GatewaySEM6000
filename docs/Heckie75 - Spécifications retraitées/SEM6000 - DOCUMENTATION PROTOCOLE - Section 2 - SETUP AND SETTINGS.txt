@@ -1,0 +1,285 @@
+SEM6000 - DOCUMENTATION PROTOCOLE
+SECTION 2 : SETUP AND SETTINGS
+
+Source : API.md
+
+============================================================
+1. SYNCHRONIZE DATETIME
+============================================================
+
+TRAME DE REQUÊTE
+
+Valeur :
+0F 0C 01 00 29 18 0A 16 06 07 E3 00 00 53 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0C        : longueur de la payload incluant la checksum
+Octets 3-4   : 0100      : commande Synchronize Datetime
+Octet 5      : 29        : secondes
+Octet 6      : 18        : minutes
+Octet 7      : 0A        : heures
+Octet 8      : 16        : jour du mois
+Octet 9      : 06        : mois
+Octets 10-11 : 07E3      : année (high-byte, low-byte)
+Octets 12-13 : 0000      : padding fixe
+Octet 14     : 53        : checksum -> 1 + somme des octets 3 à 13 inclus
+Octets 15-16 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE
+
+Valeur :
+0F 04 01 00 00 02 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 04        : longueur de la payload incluant la checksum
+Octets 3-4   : 0100      : commande Synchronize Datetime
+Octet 5      : 00        : résultat (0 = succès, 1 = échec)
+Octet 6      : 02        : checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+100 %
+
+============================================================
+2. REQUEST SETTINGS
+============================================================
+
+TRAME DE REQUÊTE
+
+Valeur :
+0F 05 10 00 00 00 11 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 05        : longueur de la payload incluant la checksum
+Octets 3-4   : 1000      : commande Request Settings
+Octets 5-6   : 0000      : valeur statique
+Octet 7      : 11        : checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 8-9   : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE
+
+Valeur :
+0F 0E 10 00 00 C8 64 00 00 00 00 01 00 0E 60 AC FF FF
+0F 0E 10 00 01 1B 12 05 28 01 68 01 00 04 DE B8 FF FF
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0E        : longueur de la payload incluant la checksum
+Octets 3-4   : 1000      : commande Request Settings
+Octet 5      : 00        : Reduced Mode Active (0 = désactivé, 1 = activé)
+Octet 6      : C8        : Normal Price en /100  (Exemple : C8h = 200 donc Prix = 2,00)
+Octet 7      : 64        : Reduced Price en /100 (Exemple : 64h = 100 donc Prix = 1,00)
+Octets 8-9   : 0000      : début période réduite en minute de puis 0H00 (hight byte, low byte)
+Octets 10-11 : 0000      : fin période réduite en minute de puis 0H00 (hight byte, low byte)
+Octet 12     : 01        : LED Ring (0 = OFF, 1 = ON)
+Octets 13    : 00      	 : unknown - always 0x00
+Octet 14-15  : 0E60      : Overload Power (hight byte, low byte)
+Octet 16     : AC        : checksum -> 1 + somme des octets 3 à 15 inclus
+Octets 17-18 : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+95 %
+
+Remarque :
+La documentation indique précisément l'ordre des champs
+mais ne précise pas entièrement les conversions numériques.
+
+============================================================
+3. SET LED RING
+============================================================
+
+TRAME DE REQUÊTE
+
+Valeur :
+0F 09 0F 00 05 01 00 00 00 00 16 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 09        : longueur de la payload incluant la checksum
+Octets 3-5   : 0F0005    : commande LED Ring
+Octet 6      : 01        : état LED (0 = OFF, 1 = ON)
+Octets 7-10  : 00000000  : padding fixe
+Octet 11     : 16        : checksum -> 1 + somme des octets 3 à 10 inclus
+Octets 12-13 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE
+
+Valeur :
+0F 05 0F 00 05 00 15 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 05        : longueur de la payload incluant la checksum
+Octets 3-5   : 0F0005    : commande LED Ring
+Octet 6	     : 00        : résultat (0 = succès, 1 = échec)
+Octet 7      : 15        : checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 8-9   : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+100 %
+
+============================================================
+4. SET OVERLOAD POWER
+============================================================
+
+TRAME DE REQUÊTE
+
+Valeur :
+0F 07 05 00 0E 60 00 00 74 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 07        : longueur de la payload incluant la checksum
+Octets 3-4   : 0500      : commande Set Overload
+Octet 5-6    : 0E60      : puissance (hight byte, low byte)
+Octets 7-8   : 0000      : padding 0x0000
+Octet 9      : 74        : checksum -> 1 + somme des octets 3 à 8 inclus
+Octets 10-11 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE
+
+Valeur :
+0F 04 05 00 00 06 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 04        : longueur de la payload incluant la checksum
+Octets 3-4   : 0500      : commande Set Overload
+Octet 5      : 00        : résultat (0 = succès, 1 = échec)
+Octet 6      : 06        : checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+100 %
+
+============================================================
+5. SET PRICES
+============================================================
+
+TRAME DE REQUÊTE
+
+Valeur :
+0F 09 0F 00 04 7B 2D 00 00 00 BC FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 09        : longueur de la payload incluant la checksum
+Octets 3-5   : 0F0004    : commande Set Prices
+Octet 6      : 7B	 : prix normal /100
+Octet 7	     : 2D        : prix réduit /100
+Octets 8-10  : 000000    : padding
+Octet 11     : BC        : checksum -> 1 + somme des octets 3 à 10 inclus
+Octets 12-13 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE
+
+Valeur :
+0F 05 0F 00 04 00 14 FF FF
+
+Décodage :
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 05	: longueur de la payload incluant la checksum
+Octets 3-5   : 0F0004   : commande Set Prices
+Octet 6      : 00 	: résultat (0 = succès, 1 = échec)
+Octet 7      : 14	: checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 8-9   : FFFF	: séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+50 %
+
+============================================================
+6. SET REDUCED PERIOD
+============================================================
+
+TRAME DE REQUÊTE
+
+Valeur :
+0F 09 0F 00 01 01 00 53 01 28 8E FF FF
+
+Décodage :
+
+Octet 1      : 0F 	: séquence de début statique
+Octet 2      : 09 	: longueur de la payload incluant la checksum
+Octets 3-5   : 0F0001	: set Reduced Period command 0x0f0001
+Octet 6      : 01	: activation (0=OFF, 1=ON)
+Octets 7-8   : 0053	: heure début en minutes (83 minutes ou 1h23)
+Octets 9-10  : 0128	: heure fin en minutes (296 minutes ou 04h56)
+Octet 11     : 8E	: checksum -> 1 + somme des octets 3 à 10 inclus
+Octets 12-13 : FFFF	: séquence de fin statique
+
+NOTIFICATION
+
+Valeur :
+0F 05 0F 00 01 00 11 FF FF
+
+Décodage :
+
+Octet 1      : 0F 	: séquence de début statique
+Octet 2      : 05 	: longueur de la payload incluant la checksum
+Octets 3-5   : 0F0001	: Set reduced period command, 0x0f0001
+Octet 6      : 00	: résultat (0 = succès, 1 = échec)
+Octet 7      : 11	: checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 8-9   : FFFF	: séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+95 %
+
+============================================================
+7. SWITCH ON / OFF
+============================================================
+
+TRAME DE REQUÊTE
+
+Valeur :
+0F 06 03 00 00 00 00 04 FF FF
+
+Décodage :
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 06	: longueur de la payload incluant la checksum
+Octets 3-4   : 0300	: switch command 0x0300
+Octet 5      : 00	: 00 = OFF, 01 = ON
+Octets 6-7   : 0000	: padding value 0x0000
+Octet 8      : 04	: checksum -> 1 + somme des octets 3 à 7 inclus
+Octets 9-10  : FFFF	: séquence de fin statique
+
+NOTIFICATION
+
+Valeur :
+0F 04 03 00 00 04 FF FF
+
+Décodage :
+
+Octet 1      : 0F	: séquence de début statique
+Octet 2      : 04	: longueur de la payload incluant la checksum
+Octets 3-4   : 0300	: switch command 0x0300
+Octet 5      : 00	: résultat (0 = succès, 1 = échec)
+Octet 6      : 04	: checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF	: séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+100 %
+
+============================================================
+FIN DU FICHIER 2
+SETUP AND SETTINGS
+============================================================

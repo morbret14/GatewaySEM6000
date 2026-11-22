@@ -1,0 +1,203 @@
+SEM6000 - DOCUMENTATION PROTOCOLE
+SECTION 7 : DEVICE SETTINGS
+
+Source : API.md
+
+============================================================
+1. PRÉSENTATION GÉNÉRALE
+============================================================
+
+Cette section regroupe les informations propres
+au périphérique :
+
+- Nom de l'appareil
+- Numéro de série
+- Informations constructeur
+- Version Firmware
+- Version Hardware
+
+Read Handle 0x0003 - uuid: 00002a00-0000-1000-8000-00805f9b34fb
+Read Handle 0x0025 - uuid: 0000fff1-0000-1000-8000-00805f9b34fb
+
+============================================================
+2. DEVICE VENDOR / HARDWARE / FIRMWARE
+============================================================
+
+OBJECTIF
+
+Lire les informations d'identification du SEM6000.
+
+============================================================
+LECTURE
+============================================================
+
+Commande :
+
+char-read-hnd 0025
+
+============================================================
+RÉPONSE
+============================================================
+
+56 4F 4C 43 46 54 04 00 00 00 00 01 0D 02 00 1E
+
+============================================================
+DÉCODAGE
+============================================================
+
+Octets 1-6   	: 56 4F 4C 43 46 54 	: en ASCII : VOLCFT (le constructeur)
+Octets 7-11  	: 04 00 00 00 00	: informations réservées
+Octets 12-13	: 01 0D			: firmware version 1.13
+Octets 14-15	: 02 00			: hardware version 2.0
+Octets 16	: 1E			: champ non documenté ou complément du numéro de version 2.0.30 ou 2.30 si sur 16bits
+
+============================================================
+3. GET NAME
+============================================================
+
+OBJECTIF
+
+Lire le nom du périphérique.
+
+============================================================
+LECTURE
+============================================================
+
+Commande :
+
+char-read-hnd 0003
+
+============================================================
+EXEMPLE DE RÉPONSE
+============================================================
+
+48 6F 6C 6C 61 64 69 65 77 61 6C 64 66 65 65 : Holladiewaldfee
+
+============================================================
+RÈGLES
+============================================================
+
+- Encodage ASCII
+- Lecture directe
+- Taille variable (19 caractères maximum selon application constructeur)
+- Pas de checksum
+
+============================================================
+4. SET NAME
+============================================================
+
+OBJECTIF
+
+Modifier le nom du périphérique.
+
+============================================================
+TRAME DE REQUÊTE
+============================================================
+
+Valeur :
+
+0F 17 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 03 FF FF
+
+============================================================
+STRUCTURE
+============================================================
+
+Octet 1 	: 0F	: séquence de début statique
+Octet 2 	: 17	: longueur de la payload incluant la checksum
+Octets 3-4	: 0200	: commande Set Name
+Octets 5-23	: 00..00: Nom ASCII - 19 caractères
+Octet 24        : 00	: \0 - fin de chaine de caractère
+Octet 25	: 03    : checksum -> 1 + somme des octets 3 à 24 inclus
+Octets 26-27	: FFFF	: séquence de fin statique
+
+============================================================
+NOTIFICATION DE RÉPONSE
+============================================================
+
+Valeur :
+
+0F 04 02 00 00 03 FF FF
+
+============================================================
+DÉCODAGE
+============================================================
+
+Octet 1    : 0F		: séquence de début statique
+Octet 2    : 04		: longueur de la payload incluant la checksum
+Octets 3-4 : 0200 	: commande Set Name
+Octet 5	   : 00		: résultat (0 = succès, 1 = échec)
+Octet 6	   : 03		: checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8 : FFFF	: séquence de fin statique
+
+============================================================
+5. GET SERIAL
+============================================================
+
+OBJECTIF
+
+Lire le numéro de série du périphérique.
+
+============================================================
+TRAME DE REQUÊTE
+============================================================
+
+Valeur :
+
+0F 05 11 00 00 00 12 FF FF
+
+============================================================
+DÉCODAGE
+============================================================
+
+Octet 1		: 0F	: séquence de début statique
+Octet 2 	: 05	: longueur de la payload incluant la checksum
+Octets 3-4 	: 1100	: commande Get Serial
+Octets 5-6	: 0000	: Valeur fixe
+Octet 7		: 12	: checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 8-9	: FFFF	: séquence de fin statique
+
+============================================================
+NOTIFICATION #1
+============================================================
+
+Valeur :
+
+0F 15 11 00 4D 4C 30 31 44 31 30 30 31 32 30 30 30 30 30 30
+
+============================================================
+DÉCODAGE
+============================================================
+
+Octet 1	    : 0F	: séquence de début statique
+Octet 2	    : 15	: longueur de la payload incluant la checksum
+Octets 3-4  : 1100	: commande Get Serial
+Octets 5-20 : 4D..30 	: le numéro de série en ASCII (ML01D10012000000)
+
+============================================================
+NOTIFICATION #2
+============================================================
+
+Valeur :
+
+00 00 64 FF FF
+
+============================================================
+DÉCODAGE
+============================================================
+
+Octets 1-2 : 0000	: octets \0 de bourrage
+Octet 3	   : 64		: checksum -> 1 + somme des octets (notification 1, octet 3) à (notification 2, octet 2) inclus
+Octets 4-5 : FFFF	: séquence de fin statique
+
+============================================================
+FORMAT GÉNÉRAL DU SERIAL
+============================================================
+
+Exemple : ML01D10012000000
+
+16 caractères ASCII dans cet exemple mais en théorie la chaine pourrait être plus longue si la taille de la seconde notification augmentait et/ou si d'autres notifications suivaient.
+
+============================================================
+FIN DU FICHIER 7
+SECTION DEVICE SETTINGS
+============================================================

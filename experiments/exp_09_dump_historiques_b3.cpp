@@ -15,7 +15,8 @@
 #include <Arduino.h>
 #include "SEM6000Device.h"
 
-static const char* TARGET_MAC = "94:a9:a8:1a:37:0c";
+static const char* TARGET_MAC = "94:a9:a8:1a:37:0c"; //Theoule
+//static const char* TARGET_MAC = "b0:b1:13:6c:2e:20"; // Smart EQ
 static const uint32_t TARGET_PIN = 0x00000000;
 static const int BUTTON_BOOT_PIN = 0;
 
