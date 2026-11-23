@@ -1,0 +1,152 @@
+[BLE] ✅ Connecté !
+[BLE] ✅ Authentifié avec succès !
+
+[ÉTAPE 0] Programmation du seuil initial à 2000 W et coupure du relais (OFF)...
+
+================================================================================
+ >>> 1. PRÉPARATION MATÉRIELLE DE LA CHARGE
+--------------------------------------------------------------------------------
+1. Branchez sur la prise SEM6000 un appareil consommateur de puissance :
+     -> Comprise entre 1000 W et 1800 W (ex: bouilloire, fer à repasser, radiateur).
+2. Placez l'interrupteur mécanique de cet appareil sur ON (en marche).
+3. Dès que l'appareil est branché et armé, appuyez sur BOOT ou Entrée.
+
+  👉 [Appuyez sur le bouton physique BOOT (GPIO 0) ou envoyez 'Entrée' en console]
+================================================================================
+
+  [EN ATTENTE - 1. PRÉPARATION MATÉRIELLE DE LA CHARGE] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - 1. PRÉPARATION MATÉRIELLE DE LA CHARGE] Appuyez sur BOOT ou 'Entrée'...
+>>> Action validée par l'utilisateur ! Démarrage...
+
+[ÉTAPE 3] Allumage du relais (ON)...
+--------------------------------------------------------------------------------
+  📊 [ITÉRATION #01] — SEUIL P_MAX ACTUEL : 2000 W
+--------------------------------------------------------------------------------
+  État Relais       : 🟢 ON (FERMÉ)
+  Puissance Active  : 495.58 W (Écart avec le seuil : 1504.43 W)
+  Tension Réseau    : 228 V
+  Courant Actif     : 2.396 A
+  Fréquence         : 50 Hz
+  Trame FFF2        : Word0 (Seuil mA) = 8733 mA  |  Word1 (Courant instantané) = 2.396 A (raw byte2: 0x09)
+  Trame 0x0400 brute: 0F 11 04 00 01 07 8F D7 E4 09 5C 32 00 00 00 00 00 00 EE 
+  ----------------------------------------------------------------------------
+  🎯 [FOCUS ZONE 1 — OCTETS 13 & 14] : [0x00 0x00]  (Décimal: 0 / 0x0000)
+  ----------------------------------------------------------------------------
+
+  ⏳ Attente de 10 secondes d'observation...
+[ÉTAPE 4] Calcul de réduction de seuil :
+  Puissance mesurée : 489.4 W  |  Seuil actuel : 2000 W  |  Delta = 1510.6 W
+  -> Réduction appliquée : -755 W  ==> Nouveau seuil P_max : 1245 W
+--------------------------------------------------------------------------------
+  📊 [ITÉRATION #02] — SEUIL P_MAX ACTUEL : 1245 W
+--------------------------------------------------------------------------------
+  État Relais       : 🟢 ON (FERMÉ)
+  Puissance Active  : 488.67 W (Écart avec le seuil : 756.33 W)
+  Tension Réseau    : 227 V
+  Courant Actif     : 2.372 A
+  Fréquence         : 50 Hz
+  Trame FFF2        : Word0 (Seuil mA) = 5484 mA  |  Word1 (Courant instantané) = 2.372 A (raw byte2: 0x09)
+  Trame 0x0400 brute: 0F 11 04 00 01 07 74 DC E3 09 44 32 00 00 00 00 00 00 BF 
+  ----------------------------------------------------------------------------
+  🎯 [FOCUS ZONE 1 — OCTETS 13 & 14] : [0x00 0x00]  (Décimal: 0 / 0x0000)
+  ----------------------------------------------------------------------------
+
+  ⏳ Attente de 10 secondes d'observation...
+[ÉTAPE 4] Calcul de réduction de seuil :
+  Puissance mesurée : 882.7 W  |  Seuil actuel : 1245 W  |  Delta = 362.3 W
+  -> Réduction appliquée : -181 W  ==> Nouveau seuil P_max : 1064 W
+--------------------------------------------------------------------------------
+  📊 [ITÉRATION #03] — SEUIL P_MAX ACTUEL : 1064 W
+--------------------------------------------------------------------------------
+  État Relais       : 🟢 ON (FERMÉ)
+  Puissance Active  : 891.48 W (Écart avec le seuil : 172.52 W)
+  Tension Réseau    : 226 V
+  Courant Actif     : 4.323 A
+  Fréquence         : 50 Hz
+  Trame FFF2        : Word0 (Seuil mA) = 4728 mA  |  Word1 (Courant instantané) = 4.324 A (raw byte2: 0x10)
+  Trame 0x0400 brute: 0F 11 04 00 01 0D 9A 56 E2 10 E3 32 00 00 00 00 00 00 0A 
+  ----------------------------------------------------------------------------
+  🎯 [FOCUS ZONE 1 — OCTETS 13 & 14] : [0x00 0x00]  (Décimal: 0 / 0x0000)
+  ----------------------------------------------------------------------------
+
+  ⏳ Attente de 10 secondes d'observation...
+[ÉTAPE 4] Calcul de réduction de seuil :
+  Puissance mesurée : 868.3 W  |  Seuil actuel : 1064 W  |  Delta = 195.7 W
+  -> Réduction appliquée : -97 W  ==> Nouveau seuil P_max : 967 W
+--------------------------------------------------------------------------------
+  📊 [ITÉRATION #04] — SEUIL P_MAX ACTUEL : 967 W
+--------------------------------------------------------------------------------
+  État Relais       : 🟢 ON (FERMÉ)
+  Puissance Active  : 867.49 W (Écart avec le seuil : 99.51 W)
+  Tension Réseau    : 223 V
+  Courant Actif     : 4.261 A
+  Fréquence         : 50 Hz
+  Trame FFF2        : Word0 (Seuil mA) = 4336 mA  |  Word1 (Courant instantané) = 4.261 A (raw byte2: 0x10)
+  Trame 0x0400 brute: 0F 11 04 00 01 0D 3C A0 DF 10 A5 32 00 00 00 00 00 00 B5 
+  ----------------------------------------------------------------------------
+  🎯 [FOCUS ZONE 1 — OCTETS 13 & 14] : [0x00 0x00]  (Décimal: 0 / 0x0000)
+  ----------------------------------------------------------------------------
+
+  ⏳ Attente de 10 secondes d'observation...
+[ÉTAPE 4] Calcul de réduction de seuil :
+  Puissance mesurée : 890.2 W  |  Seuil actuel : 967 W  |  Delta = 76.8 W
+  -> Réduction appliquée : -38 W  ==> Nouveau seuil P_max : 929 W
+--------------------------------------------------------------------------------
+  📊 [ITÉRATION #05] — SEUIL P_MAX ACTUEL : 929 W
+--------------------------------------------------------------------------------
+  État Relais       : 🟢 ON (FERMÉ)
+  Puissance Active  : 894.61 W (Écart avec le seuil : 34.39 W)
+  Tension Réseau    : 227 V
+  Courant Actif     : 4.326 A
+  Fréquence         : 50 Hz
+  Trame FFF2        : Word0 (Seuil mA) = 4110 mA  |  Word1 (Courant instantané) = 4.326 A (raw byte2: 0x10)
+  Trame 0x0400 brute: 0F 11 04 00 01 0D A6 92 E3 10 E6 32 00 00 00 00 00 00 56 
+  ----------------------------------------------------------------------------
+  🎯 [FOCUS ZONE 1 — OCTETS 13 & 14] : [0x00 0x00]  (Décimal: 0 / 0x0000)
+  ----------------------------------------------------------------------------
+
+  ⏳ Attente de 10 secondes d'observation...
+[ÉTAPE 4] Calcul de réduction de seuil :
+  Puissance mesurée : 895.6 W  |  Seuil actuel : 929 W  |  Delta = 33.4 W
+  -> Réduction appliquée : -16 W  ==> Nouveau seuil P_max : 913 W
+--------------------------------------------------------------------------------
+  📊 [ITÉRATION #06] — SEUIL P_MAX ACTUEL : 913 W
+--------------------------------------------------------------------------------
+  État Relais       : 🟢 ON (FERMÉ)
+  Puissance Active  : 894.65 W (Écart avec le seuil : 18.35 W)
+  Tension Réseau    : 227 V
+  Courant Actif     : 4.325 A
+  Fréquence         : 50 Hz
+  Trame FFF2        : Word0 (Seuil mA) = 4022 mA  |  Word1 (Courant instantané) = 4.326 A (raw byte2: 0x10)
+  Trame 0x0400 brute: 0F 11 04 00 01 0D A6 BD E3 10 E5 32 00 00 00 00 00 00 80 
+  ----------------------------------------------------------------------------
+  🎯 [FOCUS ZONE 1 — OCTETS 13 & 14] : [0x00 0x00]  (Décimal: 0 / 0x0000)
+  ----------------------------------------------------------------------------
+
+  ⏳ Attente de 10 secondes d'observation...
+
+  ⚡ [SURCHARGE] Disjonction détectée pendant la phase d'attente !
+
+================================================================================
+  ⚡ ÉTAPE 6 : SEUIL DE SURCHARGE ATTEINT — LE RELAIS A DISJONCTÉ !              
+================================================================================
+--------------------------------------------------------------------------------
+  📊 [ITÉRATION #99] — SEUIL P_MAX ACTUEL : 913 W
+--------------------------------------------------------------------------------
+  État Relais       : 🔴 OFF (OUVERT / DISJONCTÉ)
+  Puissance Active  : 0.00 W (Écart avec le seuil : 913.00 W)
+  Tension Réseau    : 230 V
+  Courant Actif     : 0.000 A
+  Fréquence         : 50 Hz
+  Trame FFF2        : Word0 (Seuil mA) = 4022 mA  |  Word1 (Courant instantané) = 0.000 A (raw byte2: 0x00)
+  Trame 0x0400 brute: 0F 11 04 00 02 00 00 00 E6 00 00 32 00 00 00 00 00 00 1F 
+  ----------------------------------------------------------------------------
+  🎯 [FOCUS ZONE 1 — OCTETS 13 & 14] : [0x00 0x00]  (Décimal: 0 / 0x0000)
+  ----------------------------------------------------------------------------
+
+[SÉCURITÉ] Restauration du seuil de surcharge nominal à 3680 W...
+[BLE] Déconnexion et libération de la prise...
+[BLE] ✅ Prise déconnectée.
+================================================================================
+  TEST TERMINÉ AVEC SUCCÈS — ANALYSE DISPONIBLE DANS LA CONSOLE SÉRIE           
+================================================================================

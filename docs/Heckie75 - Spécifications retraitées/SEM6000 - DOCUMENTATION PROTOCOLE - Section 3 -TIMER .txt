@@ -57,7 +57,7 @@ Décodage :
 Octet 1      : 0F        : séquence de début statique
 Octet 2      : 0C        : longueur de la payload incluant la checksum
 Octets 3-4   : 0800      : commande Set Timer
-Octet 5      : 01        : action timer (01 = ON, 02 = OFF) - passe à 00 lors le timer est échu ou stoppé
+Octet 5      : 01        : action timer (01 = ON, 02 = OFF) - passe à 00 lorsque le timer est échu ou stoppé
 Octet 6      : 2D        : nombre des secondes de la date UTC de déclenchement à programmer : 45
 Octet 7      : 1C        : nombre des minutes de la date UTC de déclenchement à programmer : 28
 Octet 8      : 16        : nombre des heures de la date UTC de déclenchement à programmer :  22 

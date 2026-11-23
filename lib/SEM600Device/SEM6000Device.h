@@ -1,7 +1,8 @@
 /*
- * SEM6000Device.h - Version 0.3.5
+ * SEM6000Device.h - Version 0.3.8
  * Interface unifiée BLE pour Voltcraft SEM6000-FR
  * Support hybride : PIN BCD (0..9999) & PIN32 Binaire (0x00000000..0xFFFFFFFF)
+ * Harmonisation des commandes SET : CMD_SET_2B (statut index 4) et CMD_SET_3B (statut index 5)
  */
 
 #ifndef SEM6000_DEVICE_H

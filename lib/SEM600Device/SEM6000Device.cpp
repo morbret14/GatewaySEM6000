@@ -1,5 +1,5 @@
 /*
- * SEM6000Device.cpp - Version 0.3.5
+ * SEM6000Device.cpp - Version 0.3.8
  * Interface unifiée BLE pour Voltcraft SEM6000-FR
  */
 
@@ -158,7 +158,7 @@ SEM6000Status SEM6000Device::sendCommandAndWaitResponse(const uint8_t* cmdFrame,
             } 
             else if (type == CMD_SET_3B) {
                 if (m_rxLength < 9) return SEM_ERR_NOTIFICATION;
-                return (m_rxBuffer[4] == 0x00) ? SEM_OK : SEM_ERR_RESPONSE_REJECTED;
+                return (m_rxBuffer[5] == 0x00) ? SEM_OK : SEM_ERR_RESPONSE_REJECTED;
             } 
             else {
                 return SEM_OK;
@@ -502,7 +502,7 @@ SEM6000Status SEM6000Device::setScheduler(SEMSchedulerMode mode, uint8_t slotId,
     };
 
     frame[16] = calculateChecksum(frame, 2, 14);
-    return sendCommandAndWaitResponse(frame, sizeof(frame), 0x1300, CMD_SET_3B);
+    return sendCommandAndWaitResponse(frame, sizeof(frame), 0x1300, CMD_SET_2B);
 }
 
 SEM6000Status SEM6000Device::deleteScheduler(uint8_t slotId) {
@@ -518,14 +518,14 @@ SEM6000Status SEM6000Device::deleteScheduler(uint8_t slotId) {
     };
 
     frame[16] = calculateChecksum(frame, 2, 14);
-    return sendCommandAndWaitResponse(frame, sizeof(frame), 0x1300, CMD_SET_3B);
+    return sendCommandAndWaitResponse(frame, sizeof(frame), 0x1300, CMD_SET_2B);
 }
 
 SEM6000Status SEM6000Device::resetScheduler() {
     if (!m_authorized) return SEM_ERR_AUTH_FAILED;
     uint8_t frame[] = { 0x0F, 0x06, 0x13, 0x00, 0x02, 0x00, 0x00, 0xFF, 0xFF };
     frame[5] = calculateChecksum(frame, 2, 3);
-    return sendCommandAndWaitResponse(frame, sizeof(frame), 0x1300, CMD_SET_3B);
+    return sendCommandAndWaitResponse(frame, sizeof(frame), 0x1300, CMD_SET_2B);
 }
 
 // --- 6. Mode Aléatoire ---

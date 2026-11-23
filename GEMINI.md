@@ -21,7 +21,7 @@ Consulter systématiquement ce document pour toute implémentation ou ajustement
 ## 3. Découpage en 3 Couches (Vue d'ensemble)
 * **Couche 1 : Pilote BLE pur (`lib/SEM600Device/SEM6000Device.h/.cpp`)**
   * Encapsulation GATT/NimBLE bas niveau.
-  * *Règle :* Pilote validé en v0.3.7 — préserver et ne pas altérer inutilement.
+  * *Règle :* Pilote scellé et validé en v0.3.8 — harmonisation universelle des statuts SET (CMD_SET_2B index 4, CMD_SET_3B index 5). Préserver et ne pas altérer.
 * **Couche 2 : Machine à états & Index Perpétuel (`src/ManagedSEM6000.h/.cpp`)**
   * Encapsule `SEM6000Device`. Gère la détection de coupure secteur, la remise à l'heure NTP et la continuité de l'index perpétuel en mémoire non volatile (`Preferences` / NVS).
 * **Couche 3 : Ordonnanceur & Réseau (`src/SEM6000Manager.h/.cpp` et `src/main.cpp`)**

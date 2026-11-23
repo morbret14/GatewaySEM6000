@@ -1,0 +1,42 @@
+  [EN ATTENTE - 1. CONNEXION À LA PRISE] Appuyez sur BOOT ou 'Entrée'...
+>>> Action validée par l'utilisateur ! Démarrage de l'étape...
+
+[BLE] Connexion à 94:a9:a8:1a:37:0c...
+[BLE] ✅ Connecté !
+[BLE] ✅ Authentifié avec succès !
+
+[INIT] Extinction préalable du relais pour test de bascule à ON...
+[INIT] Synchronisation horloge prise sur repère fixe : 12:00:00 (le 23/11/2026)...
+[TIMER] Armement d'un Timer de 60 secondes :
+  -> Date cible : 12:01:00 le 23/11/2026
+  -> Action     : Allumer le relais (ON = 0x01)
+
+=====================================================================================================================
+  #  | Temps écoulé | Action programmée| Cible absolue programmée | Octets bruts [B11..B13] | Durée H:M:S | Total Sec
+-----+--------------+------------------+--------------------------+-------------------------+-------------+----------
+  [01] |   T +  0 s   | ACTIF -> ON (01) | 2026/11/23 12:01:00 | [0x00 0x00 0x3C] | 00h 00m 60s |    60 s
+  [02] |   T + 10 s   | ACTIF -> ON (01) | 2026/11/23 12:01:00 | [0x00 0x00 0x3C] | 00h 00m 60s |    60 s
+  [03] |   T + 20 s   | ACTIF -> ON (01) | 2026/11/23 12:01:00 | [0x00 0x00 0x3C] | 00h 00m 60s |    60 s
+  [04] |   T + 30 s   | ACTIF -> ON (01) | 2026/11/23 12:01:00 | [0x00 0x00 0x3C] | 00h 00m 60s |    60 s
+  [05] |   T + 40 s   | ACTIF -> ON (01) | 2026/11/23 12:01:00 | [0x00 0x00 0x3C] | 00h 00m 60s |    60 s
+  [06] |   T + 50 s   | ACTIF -> ON (01) | 2026/11/23 12:01:00 | [0x00 0x00 0x3C] | 00h 00m 60s |    60 s
+  [07] |   T + 65 s   | INACTIF (00)     | 2026/11/23 12:01:00 | [0x00 0x00 0x3C] | 00h 00m 60s |    60 s
+  [08] |   T + 75 s   | INACTIF (00)     | 2026/11/23 12:01:00 | [0x00 0x00 0x3C] | 00h 00m 60s |    60 s
+=====================================================================================================================
+
+================================================================================
+  📊 VERDICT & ANALYSE TECHNIQUE
+================================================================================
+  🎉 CONCLUSION : Les octets [B11..B13] forment un PRESET STATIQUE !
+  -> La prise mémorise la durée initiale d'armement (ex. 60s) et la conserve figée.
+  -> Pour connaître le temps restant, le client doit comparer l'heure actuelle avec la date cible.
+
+  [COMPORTEMENT POST-ÉCHÉANCE (après 60s)] :
+  -> Échantillon T+65s : Action = 0x00, Durée = 60 s
+  -> Échantillon T+75s : Action = 0x00, Durée = 60 s
+  -> Constat : L'octet d'action repasse immédiatement à 0x00 dès que le timer est échu !
+  -> État final du relais après timer : ALLUMÉ (ON) (Attendu: ALLUMÉ / ON)
+
+[FIN] Arrêt du timer et déconnexion...
+[BLE] ✅ Prise déconnectée et remise à zéro.
+================================================================================
