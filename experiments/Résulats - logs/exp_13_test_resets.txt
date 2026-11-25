@@ -1,9 +1,9 @@
-================================================================================
-  🚀 EXPÉRIENCE 13 : TEST COMPLET DES COMMANDES DE RÉINITIALISATION (RÉSULTATS)
-  Prise : Théoule (94:a9:a8:1a:37:0c) - Firmware v1.24 / Hardware v2.0
-  Pilote : SEM6000Device v0.3.8
-================================================================================
+ *  Executing task: C:\Users\yakha\.platformio\penv\Scripts\platformio.exe device monitor --environment test-resets --port COM5 
 
+--- Terminal on COM5 | 115200 8-N-1
+--- Available filters and text transformations: debug, default, direct, esp32_exception_decoder, hexlify, log2file, nocontrol, printable, send_on_enter, time
+--- More details at https://bit.ly/pio-monitor-filters
+--- Quit: Ctrl+C | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
   [EN ATTENTE - ÉTAPE 0 - DUMP INITIAL DE LA PRISE] Appuyez sur BOOT ou 'Entrée'...
 >>> Action validée par l'utilisateur ! Démarrage de l'étape...
 
@@ -25,13 +25,13 @@
   Version Hardware   : 2.0 (Byte16: 0x13)
 
 --- [2. DIAGNOSTIC LÉGER & TÉLÉMÉTRIE INSTANTANÉE] ---
-  Caractéristique FFF2: Word0 (Seuil mA) = 8620 mA  |  Word1 (Courant mA) = 0.012 A (raw byte: 0x00)
-  Télémétrie 0x0400  : Relais = 🟢 ON  |  P = 0.00 W  |  U = 230 V  |  I = 0.012 A  |  F = 50 Hz
+  Caractéristique FFF2: Word0 (Seuil mA) = 8695 mA  |  Word1 (Courant mA) = 0.000 A (raw byte: 0x00)
+  Télémétrie 0x0400  : Relais = 🔴 OFF  |  P = 0.00 W  |  U = 232 V  |  I = 0.000 A  |  F = 50 Hz
 
 --- [3. PARAMÈTRES GÉNÉRAUX & TARIFICATION (0x1000)] ---
   Seuil Puissance Max: 2000 W
   Tarif HP (Normal)  : 27 centimes/kWh
-  Tarif HC (Réduit)  : 15 centimes/kWh
+  Tarif HC (Réduit)  : 18 centimes/kWh
   Période HC Active  : OUI (22h00 -> 06h00, raw: 1320 -> 360 min)
   Anneau LED         : 0x00
 
@@ -41,15 +41,18 @@
 
 --- [5. PROGRAMMATIONS (SCHEDULERS - 0x1400)] ---
   Nombre total de Schedulers : 4
-  [Slot 09] ACTIF   | Action: OFF | Jours: 0x00 | Heure: 17:30 | Date: 2026/11/28 (sortKey: 133)
-  [Slot 10] ACTIF   | Action: ON  | Jours: 0x7F | Heure: 23:30 | Date: 2026/11/23 (sortKey: 6)
-  [Slot 11] INACTIF | Action: OFF | Jours: 0x28 | Heure: 22:30 | Date: 2026/11/23 (sortKey: 184)
-  [Slot 12] ACTIF   | Action: ON  | Jours: 0x02 | Heure: 19:30 | Date: 2026/11/23 (sortKey: 133)
+  [Slot 09] INACTIF | Action: ON  | Jours: 0x00 | Heure: 00:00 | Date: 2026/12/25 (sortKey: 94)
+  [Slot 10] ACTIF   | Action: ON  | Jours: 0x13 | Heure: 17:02 | Date: 2026/11/23 (sortKey: 120)
+  [Slot 11] INACTIF | Action: ON  | Jours: 0x00 | Heure: 17:02 | Date: 2026/11/27 (sortKey: 116)
+  [Slot 12] ACTIF   | Action: ON  | Jours: 0x24 | Heure: 10:01 | Date: 2026/11/23 (sortKey: 129)
 
 --- [6. HISTORIQUES ÉNERGÉTIQUES] ---
-  Historique 24h (hourlyWh) : Total = 0 Wh  |  Slots non nuls = 0/24
-  Historique 30j (dailyWh)  : Total = 0 Wh  |  Jours non nuls = 0/30
-  Historique 12m (monthlyWh): Total = 0 Wh  |  Mois non nuls = 0/12
+  Historique 24h (hourlyWh) : Total = 15 Wh  |  Slots non nuls = 1/24
+    Détail non nuls : [H-2: 15Wh] 
+  Historique 30j (dailyWh)  : Total = 489 Wh  |  Jours non nuls = 21/30
+    Détail non nuls : [J-27: 2Wh (HC:0%)] [J-25: 5Wh (HC:0%)] [J-24: 31Wh (HC:0%)] [J-23: 41Wh (HC:0%)] [J-22: 2Wh (HC:0%)] [J-21: 6Wh (HC:0%)] [J-20: 7Wh (HC:0%)] [J-19: 7Wh (HC:0%)] [J-18: 5Wh (HC:0%)] [J-17: 9Wh (HC:0%)] [J-16: 11Wh (HC:0%)] [J-15: 15Wh (HC:0%)] [J-14: 7Wh (HC:0%)] [J-13: 18Wh (HC:0%)] [J-12: 3Wh (HC:0%)] [J-11: 5Wh (HC:0%)] [J-6: 8Wh (HC:0%)] [J-4: 24Wh (HC:0%)] [J-3: 134Wh (HC:0%)] [J-2: 134Wh (HC:0%)] [J-0: 15Wh (HC:0%)] 
+  Historique 12m (monthlyWh): Total = 869 Wh  |  Mois non nuls = 3/12
+    Détail non nuls : [M-2: 1Wh (HC:0%)] [M-1: 458Wh (HC:0%)] [M-0: 410Wh (HC:0%)] 
 ################################################################################
 
 
@@ -64,10 +67,14 @@ mais le Nom, Schedulers, Prix et Settings doivent rester intacts !
 ================================================================================
 
   [EN ATTENTE - ÉTAPE 1 - COMMANDE RESET HISTORIQUES (0x0F0002)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 1 - COMMANDE RESET HISTORIQUES (0x0F0002)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 1 - COMMANDE RESET HISTORIQUES (0x0F0002)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 1 - COMMANDE RESET HISTORIQUES (0x0F0002)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 1 - COMMANDE RESET HISTORIQUES (0x0F0002)] Appuyez sur BOOT ou 'Entrée'...
 >>> Action validée par l'utilisateur ! Démarrage de l'étape...
 
 [RESET CONSO] Envoi de la commande resetConsumptionData()...
-[RESET CONSO] Code retour de la commande : 0 (✅ SUCCÈS (SEM_OK))
+[RESET CONSO] Code retour de la commande : 6 (❌ ÉCHEC)
 [RESET CONSO] Temporisation de 3 secondes pour l'écriture Flash...
 [DUMP #1] Capture de l'état après resetConsumptionData()...
 
@@ -83,13 +90,13 @@ mais le Nom, Schedulers, Prix et Settings doivent rester intacts !
   Version Hardware   : 2.0 (Byte16: 0x13)
 
 --- [2. DIAGNOSTIC LÉGER & TÉLÉMÉTRIE INSTANTANÉE] ---
-  Caractéristique FFF2: Word0 (Seuil mA) = 8620 mA  |  Word1 (Courant mA) = 0.012 A (raw byte: 0x00)
-  Télémétrie 0x0400  : Relais = 🟢 ON  |  P = 0.00 W  |  U = 229 V  |  I = 0.012 A  |  F = 50 Hz
+  Caractéristique FFF2: Word0 (Seuil mA) = 8695 mA  |  Word1 (Courant mA) = 0.000 A (raw byte: 0x00)
+  Télémétrie 0x0400  : Relais = 🔴 OFF  |  P = 0.00 W  |  U = 231 V  |  I = 0.000 A  |  F = 50 Hz
 
 --- [3. PARAMÈTRES GÉNÉRAUX & TARIFICATION (0x1000)] ---
   Seuil Puissance Max: 2000 W
   Tarif HP (Normal)  : 27 centimes/kWh
-  Tarif HC (Réduit)  : 15 centimes/kWh
+  Tarif HC (Réduit)  : 18 centimes/kWh
   Période HC Active  : OUI (22h00 -> 06h00, raw: 1320 -> 360 min)
   Anneau LED         : 0x00
 
@@ -99,10 +106,10 @@ mais le Nom, Schedulers, Prix et Settings doivent rester intacts !
 
 --- [5. PROGRAMMATIONS (SCHEDULERS - 0x1400)] ---
   Nombre total de Schedulers : 4
-  [Slot 09] ACTIF   | Action: OFF | Jours: 0x00 | Heure: 17:30 | Date: 2026/11/28 (sortKey: 133)
-  [Slot 10] ACTIF   | Action: ON  | Jours: 0x7F | Heure: 23:30 | Date: 2026/11/23 (sortKey: 6)
-  [Slot 11] INACTIF | Action: OFF | Jours: 0x28 | Heure: 22:30 | Date: 2026/11/23 (sortKey: 184)
-  [Slot 12] ACTIF   | Action: ON  | Jours: 0x02 | Heure: 19:30 | Date: 2026/11/23 (sortKey: 133)
+  [Slot 09] INACTIF | Action: ON  | Jours: 0x00 | Heure: 00:00 | Date: 2026/12/25 (sortKey: 94)
+  [Slot 10] ACTIF   | Action: ON  | Jours: 0x13 | Heure: 17:02 | Date: 2026/11/23 (sortKey: 120)
+  [Slot 11] INACTIF | Action: ON  | Jours: 0x00 | Heure: 17:02 | Date: 2026/11/27 (sortKey: 116)
+  [Slot 12] ACTIF   | Action: ON  | Jours: 0x24 | Heure: 10:01 | Date: 2026/11/23 (sortKey: 129)
 
 --- [6. HISTORIQUES ÉNERGÉTIQUES] ---
   Historique 24h (hourlyWh) : Total = 0 Wh  |  Slots non nuls = 0/24
@@ -118,9 +125,9 @@ mais le Nom, Schedulers, Prix et Settings doivent rester intacts !
   [SETTINGS & PRIX] : 🟢 INCHANGÉS (Seuil, Tarifs HP/HC, Période HC, LED)
   [SCHEDULERS]      : 🟢 INCHANGÉS (Toujours 4 schedulers)
   [MODE ALÉATOIRE]  : 🟢 INCHANGÉ
-  [HISTORIQUE 24H]  : 🟢 INCHANGÉ (0 Wh)
-  [HISTORIQUE 30J]  : 🟢 INCHANGÉ (0 Wh)
-  [HISTORIQUE 12M]  : 🟢 INCHANGÉ (0 Wh)
+  [HISTORIQUE 24H]  : 🧹 EFFACÉ / REMIS À ZÉRO ! (15 Wh -> 0 Wh)
+  [HISTORIQUE 30J]  : 🧹 EFFACÉ / REMIS À ZÉRO ! (489 Wh -> 0 Wh)
+  [HISTORIQUE 12M]  : 🧹 EFFACÉ / REMIS À ZÉRO ! (869 Wh -> 0 Wh)
 ================================================================================
 
 
@@ -135,6 +142,23 @@ Si la prise se déconnecte, le programme tentera une reconnexion automatique.
   👉 [Appuyez sur le bouton physique BOOT (GPIO 0) ou envoyez 'Entrée' en console]
 ================================================================================
 
+  [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
+  [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
   [EN ATTENTE - ÉTAPE 3 - FACTORY RESET (0x0F0000)] Appuyez sur BOOT ou 'Entrée'...
 >>> Action validée par l'utilisateur ! Démarrage de l'étape...
 
@@ -160,8 +184,8 @@ Si la prise se déconnecte, le programme tentera une reconnexion automatique.
   Version Hardware   : 2.0 (Byte16: 0x13)
 
 --- [2. DIAGNOSTIC LÉGER & TÉLÉMÉTRIE INSTANTANÉE] ---
-  Caractéristique FFF2: Word0 (Seuil mA) = 8620 mA  |  Word1 (Courant mA) = 0.012 A (raw byte: 0x00)
-  Télémétrie 0x0400  : Relais = 🟢 ON  |  P = 0.00 W  |  U = 229 V  |  I = 0.012 A  |  F = 50 Hz
+  Caractéristique FFF2: Word0 (Seuil mA) = 8695 mA  |  Word1 (Courant mA) = 0.012 A (raw byte: 0x00)
+  Télémétrie 0x0400  : Relais = 🟢 ON  |  P = 0.00 W  |  U = 233 V  |  I = 0.012 A  |  F = 50 Hz
 
 --- [3. PARAMÈTRES GÉNÉRAUX & TARIFICATION (0x1000)] ---
   Seuil Puissance Max: 3680 W
@@ -192,14 +216,14 @@ Si la prise se déconnecte, le programme tentera une reconnexion automatique.
   [SETTINGS & PRIX] : 🔴 MODIFIÉS :
     - Seuil P_max   : 2000 W -> 3680 W
     - Tarif Normal  : 27 -> 200 centimes
-    - Tarif Réduit  : 15 -> 100 centimes
+    - Tarif Réduit  : 18 -> 100 centimes
     - Période HC    : 1320->360 -> 0->0 min
     - Anneau LED    : 0x00 -> 0x01
   [SCHEDULERS]      : 🔴 MODIFIÉS (4 schedulers -> 0 schedulers)
   [MODE ALÉATOIRE]  : 🟢 INCHANGÉ
-  [HISTORIQUE 24H]  : 🟢 INCHANGÉ (0 Wh)
-  [HISTORIQUE 30J]  : 🟢 INCHANGÉ (0 Wh)
-  [HISTORIQUE 12M]  : 🟢 INCHANGÉ (0 Wh)
+  [HISTORIQUE 24H]  : 🧹 EFFACÉ / REMIS À ZÉRO ! (15 Wh -> 0 Wh)
+  [HISTORIQUE 30J]  : 🧹 EFFACÉ / REMIS À ZÉRO ! (489 Wh -> 0 Wh)
+  [HISTORIQUE 12M]  : 🧹 EFFACÉ / REMIS À ZÉRO ! (869 Wh -> 0 Wh)
 ================================================================================
 
 [FIN] Déconnexion propre de la prise...

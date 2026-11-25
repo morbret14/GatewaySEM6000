@@ -1,0 +1,114 @@
+########################################################################################
+ 📋 DUMP INTÉGRAL TABLE GATT : CHAMBRE CÉDRIC (Référence HW 2.0 / FW 1.24) (b0:b1:13:6b:43:f0)
+########################################################################################
+ ✅ Connecté en 345 ms | MTU négocié : 23 octets | RSSI : -78 dBm
+ -> Nombre de services GATT découverts : 4
+
+  [SERVICE #1] UUID: 0x1800 (Handles: 0x0001 .. 0x000B)
+    * Char 0x0003 | UUID: 0x2a00                               | Props: [READ                  ]
+      -> Lecture directe : (14 octets) HEX=[ 43 68 61 6D 62 72 65 20 43 65 64 72 69 63 ] ASCII='Chambre Cedric'
+    * Char 0x0005 | UUID: 0x2a01                               | Props: [READ                  ]
+      -> Lecture directe : (2 octets) HEX=[ 00 00 ] ASCII='..'
+    * Char 0x0007 | UUID: 0x2a02                               | Props: [READ                  ]
+      -> Lecture directe : (1 octets) HEX=[ 00 ] ASCII='.'
+    * Char 0x0009 | UUID: 0x2a03                               | Props: [WRITE                 ]
+    * Char 0x000B | UUID: 0x2a04                               | Props: [READ                  ]
+      -> Lecture directe : (8 octets) HEX=[ 50 00 A0 00 00 00 E8 03 ] ASCII='P.......'
+
+  [SERVICE #2] UUID: 0x1801 (Handles: 0x000C .. 0x000F)
+    * Char 0x000E | UUID: 0x2a05                               | Props: [INDIC                 ]
+
+  [SERVICE #3] UUID: 0x180a (Handles: 0x0010 .. 0x0022)
+    * Char 0x0012 | UUID: 0x2a23                               | Props: [READ                  ]
+      -> Lecture directe : (8 octets) HEX=[ F0 43 6B 00 00 13 B1 B0 ] ASCII='.Ck.....'
+    * Char 0x0014 | UUID: 0x2a24                               | Props: [READ                  ]
+      -> Lecture directe : (12 octets) HEX=[ 4D 6F 64 65 6C 20 4E 75 6D 62 65 72 ] ASCII='Model Number'
+    * Char 0x0016 | UUID: 0x2a25                               | Props: [READ                  ]
+      -> Lecture directe : (13 octets) HEX=[ 53 65 72 69 61 6C 20 4E 75 6D 62 65 72 ] ASCII='Serial Number'
+    * Char 0x0018 | UUID: 0x2a26                               | Props: [READ                  ]
+      -> Lecture directe : (17 octets) HEX=[ 46 69 72 6D 77 61 72 65 20 52 65 76 69 73 69 6F 6E ] ASCII='Firmware Revision'
+    * Char 0x001A | UUID: 0x2a27                               | Props: [READ                  ]
+      -> Lecture directe : (5 octets) HEX=[ 56 31 2E 30 30 ] ASCII='V1.00'
+    * Char 0x001C | UUID: 0x2a28                               | Props: [READ                  ]
+      -> Lecture directe : (5 octets) HEX=[ 56 31 2E 30 30 ] ASCII='V1.00'
+    * Char 0x001E | UUID: 0x2a29                               | Props: [READ                  ]
+      -> Lecture directe : (6 octets) HEX=[ 41 42 43 41 42 43 ] ASCII='ABCABC'
+    * Char 0x0020 | UUID: 0x2a2a                               | Props: [READ                  ]
+      -> Lecture directe : (14 octets) HEX=[ FE 00 65 78 70 65 72 69 6D 65 6E 74 61 6C ] ASCII='..experimental'
+    * Char 0x0022 | UUID: 0x2a50                               | Props: [READ                  ]
+      -> Lecture directe : (7 octets) HEX=[ 01 0D 00 00 00 10 01 ] ASCII='.......'
+
+  [SERVICE #4] UUID: 0xfff0 (Handles: 0x0023 .. 0xFFFF)
+    * Char 0x0025 | UUID: 0xfff1                               | Props: [READ WR_NR            ]
+      -> Lecture directe : (16 octets) HEX=[ 56 4F 4C 43 46 54 04 00 00 00 00 01 18 02 00 13 ] ASCII='VOLCFT..........'
+    * Char 0x0028 | UUID: 0xfff2                               | Props: [READ                  ]
+      -> Lecture directe : (4 octets) HEX=[ 41 F0 02 F1 ] ASCII='A...'
+    * Char 0x002B | UUID: 0xfff3                               | Props: [WR_NR                 ]
+    * Char 0x002E | UUID: 0xfff4                               | Props: [NOTIFY                ]
+    * Char 0x0032 | UUID: 0xfff5                               | Props: [READ                  ]
+      -> Lecture directe : (0 octet / vide)
+    * Char 0x0035 | UUID: 0xfff6                               | Props: [READ                  ]
+      -> Lecture directe : (14 octets) HEX=[ 43 68 61 6D 62 72 65 20 43 65 64 72 69 63 ] ASCII='Chambre Cedric'
+########################################################################################
+
+
+########################################################################################
+ 📋 DUMP INTÉGRAL TABLE GATT : VÉLO / WATTMÈTRE MOBILE (Cible HW 3.0 / FW 1.30) (a3:00:00:00:45:25)
+########################################################################################
+ ✅ Connecté en 399 ms | MTU négocié : 160 octets | RSSI : -91 dBm
+ -> Nombre de services GATT découverts : 3
+
+  [SERVICE #1] UUID: 0x1800 (Handles: 0x0001 .. 0x0009)
+    * Char 0x0003 | UUID: 0x2a00                               | Props: [READ WRITE            ]
+      -> Lecture directe : (17 octets) HEX=[ 57 61 74 74 6D C3 A8 74 72 65 20 6D 6F 62 69 6C 65 ] ASCII='Wattm..tre mobile'
+    * Char 0x0005 | UUID: 0x2a01                               | Props: [READ WRITE            ]
+      -> Lecture directe : (2 octets) HEX=[ 00 00 ] ASCII='..'
+    * Char 0x0007 | UUID: 0x2a02                               | Props: [READ                  ]
+      -> Lecture directe : (1 octets) HEX=[ 00 ] ASCII='.'
+    * Char 0x0009 | UUID: 0x2a04                               | Props: [READ                  ]
+      -> Lecture directe : (8 octets) HEX=[ 08 00 0A 00 00 00 58 02 ] ASCII='......X.'
+
+  [SERVICE #2] UUID: 0x1801 (Handles: 0x000A .. 0x000D)
+    * Char 0x000C | UUID: 0x2a05                               | Props: [READ INDIC            ]
+      -> Lecture directe : (4 octets) HEX=[ 01 00 FF FF ] ASCII='....'
+
+  [SERVICE #3] UUID: 0xfff0 (Handles: 0x000E .. 0x0015)
+    * Char 0x0010 | UUID: 0xfff1                               | Props: [READ WR_NR            ]
+      -> Lecture directe : (16 octets) HEX=[ 56 4F 4C 43 46 54 04 00 00 00 00 01 1E 03 00 0C ] ASCII='VOLCFT..........'
+    * Char 0x0012 | UUID: 0xfff3                               | Props: [WR_NR                 ]
+    * Char 0x0014 | UUID: 0xfff4                               | Props: [NOTIFY                ]
+########################################################################################
+
+
+########################################################################################
+ 🔬 SNIFFER BRUT PROTOCOLE 0xFFF3/0xFFF4 & 0xFFF2 SUR VÉLO HW 3.0 (a3:00:00:00:45:25)
+########################################################################################
+ ✅ Connecté à Vélo (HW 3.0) | MTU = 160 octets
+ -> Caractéristique 0xFFF2 : ABSENTE (nullptr) (canRead=NON, canNotify=NON)
+
+  >>> COMMANDE : 1. Authentification 32-bit (0x1700)
+      TX (0xFFF3) : (16 octets) HEX=[ 0F 0C 17 00 00 00 00 00 00 00 00 00 00 18 FF FF ] ASCII='................'
+      RX #1 (0xFFF4) : (10 octets) HEX=[ 0F 06 17 00 00 00 00 18 FF FF ] ASCII='..........'
+
+  >>> COMMANDE : 2. Request Settings (0x1000)
+      TX (0xFFF3) : (9 octets) HEX=[ 0F 05 10 00 00 00 11 FF FF ] ASCII='.........'
+      RX #1 (0xFFF4) : (20 octets) HEX=[ 0F 0E 10 00 01 12 0D 05 28 01 68 01 00 0E 60 36 FF FF 00 00 ] ASCII='........(.h...`6....'
+
+  >>> COMMANDE : 3. Capture Measurement (0x0400)
+      TX (0xFFF3) : (9 octets) HEX=[ 0F 05 04 00 00 00 05 FF FF ] ASCII='.........'
+      RX #1 (0xFFF4) : (19 octets) HEX=[ 0F 0F 04 00 01 07 5D 0A E2 08 DA 31 01 00 00 00 84 9D 8B ] ASCII='......]....1.......'
+
+  >>> COMMANDE : 4. Set LED Ring ON (0x0F0005)
+      TX (0xFFF3) : (13 octets) HEX=[ 0F 09 0F 00 05 01 00 00 00 00 16 FF FF ] ASCII='.............'
+      RX #1 (0xFFF4) : (8 octets) HEX=[ 0F 04 0F 00 00 10 FF FF ] ASCII='........'
+
+  >>> COMMANDE : 5. Get Serial Number (0x1100)
+      TX (0xFFF3) : (9 octets) HEX=[ 0F 05 11 00 00 00 12 FF FF ] ASCII='.........'
+      ⚠️ Aucune notification reçue sur 0xFFF4 après 600 ms !
+
+  >>> COMMANDE : 6. Request Year History 12m (0x0C00)
+      TX (0xFFF3) : (9 octets) HEX=[ 0F 05 0C 00 00 00 0D FF FF ] ASCII='.........'
+      RX #1 (0xFFF4) : (55 octets) HEX=[ 0F 33 0C 00 00 00 00 00 00 01 CA 01 00 01 8F 00 00 00 00 00 00 01 4D 02 00 01 EE 02 00 02 40 03 00 02 27 01 00 03 73 00 00 01 01 00 00 01 3F 01 00 00 0E 00 94 FF FF ] ASCII='.3....................M.......@...'...s.......?........'
+
+[BLE] ✅ Sniffer Vélo (HW 3.0) terminé et déconnecté.
+########################################################################################

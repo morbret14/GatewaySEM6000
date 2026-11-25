@@ -1,0 +1,121 @@
+========================================================================================
+  EXPÉRIENCE 15 : ENQUÊTE PRISE 'BUREAU' & QUALIFICATION HARDWARE 3.0 / FIRMWARE 1.30
+  Date : 25/11/2026
+  Cibles :
+    - Volet 1 : Bureau (b0:b1:13:6b:2d:d7)
+    - Volet 2 : Vélo / Wattmètre mobile (a3:00:00:00:45:25) - HW 3.0 / FW 1.30
+========================================================================================
+
+########################################################################################
+ 🕵️‍♂️ VOLET 1 : ENQUÊTE SUR LA PRISE 'BUREAU' (b0:b1:13:6b:2d:d7)
+########################################################################################
+
+--- [1A. SCAN BLE 'FILET DÉRIVANT' SANS FILTRE (8 secondes)] ---
+ -> 15 périphérique(s) BLE distinct(s) détecté(s) autour du Bureau :
+
+ #  | MAC               | Typ | dBm  | FFF0 | Identité Connue      | Nom Annoncé      | Mfg Data (Hex)
+----+-------------------+-----+------+------+----------------------+------------------+--------------------
+  1 | 00:a1:b1:d3:01:33 | PUB |  -82 | non  | (inconnu)            | LED              | -
+  2 | a3:00:00:00:45:25 | PUB |  -80 | OUI  | Velo (HW3)           | Voltcraft        | 00002545000000A3
+  3 | b0:b1:13:6b:43:f0 | PUB |  -84 | OUI  | Chambre Cedric       | Voltcraft        | 0118F0436B13B1B0
+  4 | 15:2b:ca:80:28:27 | RND |  -93 | non  | (inconnu)            | (vide)           | -
+  5 | 0d:a9:a9:dc:87:c6 | RND |  -75 | non  | (inconnu)            | (vide)           | 0600010920225235EB03F4ADE40750F5
+  6 | 94:a9:a8:18:db:e5 | PUB |  -88 | OUI  | Lave Vaisselle       | Voltcraft        | 0118E5DB18A8A994
+  7 | 26:52:43:1b:dc:f4 | RND |  -91 | non  | (inconnu)            | (vide)           | -
+  8 | 04:87:27:b4:64:53 | PUB |  -91 | non  | (inconnu)            | ResMed 733862    | 8D0300
+  9 | 61:a1:a1:1f:8d:d0 | RND |  -86 | non  | (inconnu)            | (vide)           | E000020BCA7CF466
+ 10 | c0:d8:83:07:58:79 | RND |  -77 | non  | (inconnu)            | ScanWatch 96     | FF032CA03067
+ 11 | a3:00:00:00:40:59 | PUB |  -94 | OUI  | Seche linge (HW3)    | Voltcraft        | 00005940000000A3
+ 12 | 69:c1:af:e0:fd:19 | RND |  -98 | non  | (inconnu)            | (vide)           | -
+ 13 | 1e:6f:4a:65:8d:78 | RND |  -88 | non  | (inconnu)            | (vide)           | -
+ 14 | a3:00:00:00:47:93 | PUB |  -98 | OUI  | Lave linge (HW3)     | Voltcraft        | 00009347000000A3
+ 15 | a4:c1:38:66:89:0a | PUB |  -91 | non  | (inconnu)            | (vide)           | 4C000215432F53496E8D4806957AD3F9
+
+--- [1B. TENTATIVE DE CONNEXION GATT DIRECTE FORCÉE SUR 'BUREAU' (b0:b1:13:6b:2d:d7)] ---
+ -> Vue dans le scan préalable : NON 🔴 (Tentative forcée quand même !)
+ -> Essai connexion directe vers b0:b1:13:6b:2d:d7 en mode PUBLIC(0) (timeout 5s)... ❌ Échec (5000 ms)
+ -> Essai connexion directe vers b0:b1:13:6b:2d:d7 en mode RANDOM(1) (timeout 5s)... ❌ Échec (5001 ms)
+########################################################################################
+
+
+########################################################################################
+ 🔬 VOLET 2 : QUALIFICATION HARDWARE 3.0 / FIRMWARE 1.30 SUR 'a3:00:00:00:45:25'
+########################################################################################
+
+--- [2A. CONNEXION GATT & AUTHENTIFICATION 32 BITS] ---
+ ✅ Connecté à a3:00:00:00:45:25 en 3336 ms !
+ -> Lecture 0xFFF2 AVANT Auth : Word0 = 0 mA (0x0000) | Word1 = 0.000 A
+ -> authenticate32(0x00000000) : code 0 (✅ SEM_OK)
+
+--- [2B. IDENTITÉ, VERSIONS (0xFFF1), NUMÉRO DE SÉRIE (0x1100) & SETTINGS (0x1000)] ---
+ -> Nom GATT (0x2A00)      : 'Wattmètre mobile'
+ -> Fabricant (0xFFF1)     : 'VOLCFT' | FW: 1.30 | HW: 3.0 | Byte16: 0x0C
+ -> Trame 0xFFF1 brute     : 56 4F 4C 43 46 54 04 00 00 00 00 01 1E 03 00 0C  (16 octets)
+ -> Numéro de Série (1100) : code 7 | ''
+ -> Trame 0x1100 brute     : (vide)
+ -> Settings (0x1000)      : code 5 | Pmax=0 W | HP=0 cts | HC=0 cts | ModeHC=0 (0->0 min) | LED=0x00
+ -> Trame 0x1000 brute     : 0F 0E 10 00 01 12 0D 05 28 01 68 01 00 0E 60 36 FF FF 00 00  (20 octets)
+
+--- [2C. ÉLUCIDATION DE 0xFFF2 SUR HW 3.0 (4 COMBINAISONS RELAIS x LED + SETDATETIME)] ---
+  [ÉTAT INITIAL (Avant toute modification)]
+    -> Lecture 0xFFF2 : ERR | Word0 (Imax) =     0 mA (0x0000) | Word1 (Imes) =  0.000 A (byte2=0x00)
+    -> Télémétrie 0400: Relais=🔴 OFF | P=0.00 W | U=224 V | I=0.000 A | F=49 Hz | Octets[12..13]=0x0100 | totalKwhWh=33949
+    -> Trame 0x0400   : 0F 0F 04 00 00 00 00 00 E0 00 00 31 01 00 00 00 84 9D 38  (19 octets)
+
+ -> Test Combinaison 1 : setRelayState(OFF) + setLedRing(OFF)...
+    Codes retour SET : setRelayState(false)=0 | setLedRing(false)=7
+  [COMBI 1 : Relais OFF + LED OFF]
+    -> Lecture 0xFFF2 : ERR | Word0 (Imax) =     0 mA (0x0000) | Word1 (Imes) =  0.000 A (byte2=0x00)
+    -> Télémétrie 0400: Relais=🔴 OFF | P=0.00 W | U=224 V | I=0.000 A | F=49 Hz | Octets[12..13]=0x0100 | totalKwhWh=33949
+    -> Trame 0x0400   : 0F 0F 04 00 00 00 00 00 E0 00 00 31 01 00 00 00 84 9D 38  (19 octets)
+
+ -> Test Combinaison 2 : setRelayState(OFF) + setLedRing(ON)...
+    Code retour SET  : setLedRing(true)=7
+  [COMBI 2 : Relais OFF + LED ON]
+    -> Lecture 0xFFF2 : ERR | Word0 (Imax) =     0 mA (0x0000) | Word1 (Imes) =  0.000 A (byte2=0x00)
+    -> Télémétrie 0400: Relais=🔴 OFF | P=0.00 W | U=224 V | I=0.000 A | F=49 Hz | Octets[12..13]=0x0100 | totalKwhWh=33949
+    -> Trame 0x0400   : 0F 0F 04 00 00 00 00 00 E0 00 00 31 01 00 00 00 84 9D 38  (19 octets)
+
+ -> Test Combinaison 3 : setRelayState(ON) + setLedRing(OFF)...
+    Codes retour SET : setRelayState(true)=0 | setLedRing(false)=7
+  [COMBI 3 : Relais ON + LED OFF]
+    -> Lecture 0xFFF2 : ERR | Word0 (Imax) =     0 mA (0x0000) | Word1 (Imes) =  0.000 A (byte2=0x00)
+    -> Télémétrie 0400: Relais=🟢 ON  | P=0.00 W | U=225 V | I=0.000 A | F=49 Hz | Octets[12..13]=0x0100 | totalKwhWh=33949
+    -> Trame 0x0400   : 0F 0F 04 00 01 00 00 00 E1 00 00 31 01 00 00 00 84 9D 3A  (19 octets)
+
+ -> Test Combinaison 4 : setRelayState(ON) + setLedRing(ON)...
+    Code retour SET  : setLedRing(true)=7
+  [COMBI 4 : Relais ON + LED ON]
+    -> Lecture 0xFFF2 : ERR | Word0 (Imax) =     0 mA (0x0000) | Word1 (Imes) =  0.000 A (byte2=0x00)
+    -> Télémétrie 0400: Relais=🟢 ON  | P=0.00 W | U=225 V | I=0.000 A | F=49 Hz | Octets[12..13]=0x0100 | totalKwhWh=33949
+    -> Trame 0x0400   : 0F 0F 04 00 01 00 00 00 E1 00 00 31 01 00 00 00 84 9D 3A  (19 octets)
+
+ -> Test 5 : Envoi setDateTime(0, 30, 17, 25, 11, 2026) sur HW 3.0...
+    Code retour SET  : setDateTime()=0 (✅ SEM_OK)
+  [APRÈS setDateTime() (Relais ON + LED ON)]
+    -> Lecture 0xFFF2 : ERR | Word0 (Imax) =     0 mA (0x0000) | Word1 (Imes) =  0.000 A (byte2=0x00)
+    -> Télémétrie 0400: Relais=🟢 ON  | P=0.00 W | U=225 V | I=0.000 A | F=49 Hz | Octets[12..13]=0x0100 | totalKwhWh=33949
+    -> Trame 0x0400   : 0F 0F 04 00 01 00 00 00 E1 00 00 31 01 00 00 00 84 9D 3A  (19 octets)
+
+ -> Restauration de l'état initial (Relais=OFF, LED=OFF)...
+  [ÉTAT RESTAURÉ]
+    -> Lecture 0xFFF2 : ERR | Word0 (Imax) =     0 mA (0x0000) | Word1 (Imes) =  0.000 A (byte2=0x00)
+    -> Télémétrie 0400: Relais=🔴 OFF | P=0.00 W | U=225 V | I=0.000 A | F=49 Hz | Octets[12..13]=0x0100 | totalKwhWh=33949
+    -> Trame 0x0400   : 0F 0F 04 00 00 00 00 00 E1 00 00 31 01 00 00 00 84 9D 39  (19 octets)
+
+--- [2D. TEST DE LA SONDE TEMPORELLE FURTIVE (TIMER 0x0800 / 0x0900) SUR HW 3.0] ---
+ -> Timer initial (0x0900) : code 0 | Actif=NON
+ -> Armement furtif (+1h)  : setTimerAbs=0 | getTimerStatus=0 | stopTimer=0
+ -> Durée Δt retournée par HW 3.0 : [00h 14m 14s] = 854 secondes (Attendu: ~3598 s)
+ -> Trame 0x0900 brute     : 0F 04 08 00 00 09 FF FF 19 0B 1A 00 0E 0E 00 96 FF FF  (18 octets)
+
+--- [2E. QUALIFICATION DES LECTURES PLANNINGS, RANDOM & HISTORIQUES SUR HW 3.0] ---
+ -> getRandomMode (0x1600)       : code 0 (✅ SEM_OK) | Actif=NON
+ -> requestAllSchedulers (0x1400): code 0 (✅ SEM_OK) | 0 programmation(s) lue(s)
+ -> requestDayHistory (0x0A00)   : code 0 (✅ SEM_OK) | Cumul 24h = 0 Wh (Slot[23]=0 Wh)
+ -> requestMonthHistory (0x0B00) : code 0 (✅ SEM_OK) | Cumul 30j = 0 Wh (Jour[29]=0 Wh)
+[SEM6000] CHECKSUM INVALID ! Expected: 0xD2 | Got: 0x86 (Total: 55 bytes)
+ -> requestYearHistory (0x0C00)  : code 7 (❌ ECHEC) | Cumul 12m = 0 Wh (Mois[11]=0 Wh)
+
+[BLE] ✅ Prise Vélo (HW 3.0) déconnectée proprement.
+########################################################################################

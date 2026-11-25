@@ -1,6 +1,6 @@
 # Architecture & Spécifications du Protocole — Passerelle Domoticz SEM6000
 
-Ce document consigne l'état de l'art des connaissances acquises par rétro-ingénierie sur les prises connectées **Voltcraft SEM6000-FR** (Hardware v2.0 / Firmware v1.24) et définit l'architecture logicielle de la passerelle **ESP32-S3** sous **PlatformIO / Framework Arduino**.
+Ce document consigne l'état de l'art des connaissances acquises par rétro-ingénierie sur les prises connectées **Voltcraft SEM6000-FR** — couvrant les **deux générations matérielles coexistant dans le parc (`Hardware v2.0 / Firmware v1.24` et `Hardware v3.0 / Firmware v1.30`)** — et définit l'architecture logicielle de la passerelle **ESP32-S3** sous **PlatformIO / Framework Arduino**.
 
 ---
 
@@ -330,49 +330,127 @@ Toutes les positions ci-dessous sont exprimées en **index 0 (C-style)** dans le
 | `getDeviceVendorAndVersions` | `0xFFF1` | **GET** | - | Lecture directe ASCII constructeur & FW/HW | Données versions |
 | `getDeviceNameGATT` | `0x2A00` | **GET** | - | Lecture directe nom GATT | Nom GATT |
 | `setDeviceName` | `0x0200` | **SET** | **4** | **Statut (`0x00` = OK)** | Checksum |
-| `getSerialNumber` | `0x1100` | **GET** | - | Numéro de série ASCII (16 octets) | Série |
+| `getSerialNumber` | `0x1100` | **GET** | - | Numéro de série ASCII (16 octets, `HW 2.0` uniquement) | Série |
 
 ---
 
-## 3. Architecture Logicielle Cible
+### 2.8 Dualité Matérielle du Parc : `Hardware 2.0 (FW 1.24)` vs `Hardware 3.0 (FW 1.30)` (`exp_14` à `exp_17`)
 
-L'architecture est découpée en trois couches distinctes pour isoler le protocole BLE bas niveau de la logique métier et du réseau :
+Les campagnes de qualification radio et protocolaires (`exp_14`, `exp_15`, `exp_16`, `exp_17`) sur le parc réel de 10 prises ont révélé la coexistence de **deux générations matérielles et logicielles distinctes** sous la même référence commerciale Voltcraft SEM6000 :
+* **Génération `HW 2.0 / FW 1.24` (7 prises du parc) :** Préfixes MAC `b0:b1:13:...` et `94:a9:a8:...` (*Bureau, Chambre Cédric, Salon, Smart EQ, Congélateur cuisine, Lave Vaisselle, Théoule*).
+* **Génération `HW 3.0 / FW 1.30` (3 prises du parc) :** Préfixe MAC `a3:00:00:...` (*Lave linge, Sèche linge, Vélo / Wattmètre mobile*).
+
+#### 1. Identification Passive en Advertising BLE & Signature Miroir `Manufacturer Data` (`exp_14` & `exp_15`)
+Sans établir aucune connexion GATT, l'écoute passive des trames d'annonce BLE (*Advertising*) permet d'authentifier une prise SEM6000 et d'identifier instantanément sa génération matérielle grâce au champ `Manufacturer Data` de **8 octets** :
+* **Octets `Mfg[2..7]` (6 octets) — Signature Miroir MAC (Little-Endian) :**
+  Contiennent très exactement les **6 octets de l'adresse MAC BLE publique de la prise en ordre inversé**. Cette propriété offre un filtre d'authenticité infaillible à 100 % lors des scans passifs.
+* **Octets `Mfg[0..1]` (2 octets) — Signature de Génération Matérielle & Cadence Radio :**
+  * **`01 18` $\rightarrow$ `Hardware 2.0 / Firmware 1.24` :** Cadence d'émission des annonces BLE de **`60 ms`** (~16,6 paquets/s, soit ~1 000 trames par minute).
+  * **`00 00` $\rightarrow$ `Hardware 3.0 / Firmware 1.30` :** Cadence d'émission des annonces BLE de **`120 ms`** (~8,3 paquets/s, soit ~500 trames par minute — deux fois plus sobre au repos).
+
+#### 2. Comparaison des Tables GATT & Paramètres Radio Connectés (`exp_16`)
+Le dump intégral comparatif des tables GATT entre *Chambre Cédric* (`HW 2.0`) et *Vélo* (`HW 3.0`) met en évidence une refonte profonde de la pile BLE sur le `HW 3.0` :
+
+| Propriété / Service GATT | **`Hardware 2.0 / Firmware 1.24`** | **`Hardware 3.0 / Firmware 1.30`** | Impact Technique Passerelle |
+| :--- | :--- | :--- | :--- |
+| **MTU GATT négocié** | **`23 octets`** (fixe $\rightarrow$ fragmente toute trame $> 20\text{ o}$) | **`160 octets`** (trames jusqu'à 157 o reçues d'un seul bloc !) | Zéro fragmentation BLE sur `HW 3.0` |
+| **Paramètres GAP préférés (`0x2A04`)** | `50 00 A0 00 00 00 E8 03` (Intervalle **`100..200 ms`**, timeout `10 s`) | `08 00 0A 00 00 00 58 02` (Intervalle **`10..12,5 ms`**, timeout `6 s`) | Échanges GATT **~10x plus rapides** une fois connecté sur `HW 3.0` |
+| **Nom GATT (`0x2A00`)** | `READ` seul | `READ \| WRITE` (supporte l'UTF-8, ex. `"Wattmètre mobile"`) | Compatible `getDeviceNameGATT()` |
+| **Service `0x180A` (*Device Info*)** | **Présent** (9 caractéristiques `0x2A23..0x2A50`) | **Supprimé** | Sans impact (non utilisé) |
+| **Caractéristique `0xFFF1` (Versions)** | `56 4F 4C 43 46 54 ... 01 18 02 00 13` (`FW 1.24`, `HW 2.0`, Byte16 `0x13`) | `56 4F 4C 43 46 54 ... 01 1E 03 00 0C` (`FW 1.30`, `HW 3.0`, Byte16 `0x0C`) | Permet l'identification formelle post-connexion |
+| **Service `0xFFF0` (Voltcraft)** | **6 caractéristiques** : `0xFFF1`, **`0xFFF2`**, `0xFFF3`, `0xFFF4`, `0xFFF5`, `0xFFF6` | **3 caractéristiques** : `0xFFF1`, `0xFFF3`, `0xFFF4` (**`0xFFF2`, `0xFFF5`, `0xFFF6` supprimées !**) | **`m_pCharFFF2 == nullptr` sur `HW 3.0`** (`readRawFFF2()` renvoie `false`) |
+
+#### 3. Différences Protocolaires sur `0xFFF3 / 0xFFF4` (`exp_15` & `exp_16`)
+1. **Bourrage (Padding `00 00`) sur `requestSettings` (`0x1000`) :**
+   * Sur `HW 3.0`, la réponse à `0x1000` est envoyée dans un paquet GATT de **20 octets** contenant 2 octets `00 00` après le marqueur `FF FF` :
+     `0F 0E 10 00 01 12 0D 05 28 01 68 01 00 0E 60 36 FF FF 00 00`
+   * **Loi universelle de longueur logique :** Pour toute trame standard terminée par `FF FF`, la longueur utile exacte de la trame est :
+     $$L_{\text{logique}} = \texttt{m\_rxBuffer[1]} + 4$$
+     *(Sur `0x1000` : `0x0E + 4 = 18 octets`, checksum `0x36` à l'index 15, `FF FF` aux index 16-17, octets 18-19 ignorés).*
+2. **Harmonisation de l'acquittement des commandes `0x0F00` (`CMD_SET_3B`) en 8 octets :**
+   * Sur `HW 2.0`, toute commande `0x0F00` (`setLedRing`, `setPrices`, `setReducedPeriod`, `resetConsumptionData`, `factoryReset`) répond sur **9 octets** avec écho de la sous-commande en index 4 et statut en **index 5** (`0F 05 0F 00 [SubCmd] [Status] [CS] FF FF`).
+   * Sur `HW 3.0`, la prise répond sur **8 octets** sans écho de sous-commande, plaçant le statut directement en **index 4** (`0F 04 0F 00 [Status=0x00] [CS=0x10] FF FF`), comme un `CMD_SET_2B`.
+3. **Suppression de `getSerialNumber` (`0x1100`) :**
+   * L'opcode `0x1100` est ignoré par le `HW 3.0` (aucune notification émise sur `0xFFF4`).
+4. **Particularité du Checksum de `requestYearHistory` (`0x0C00`) sur `HW 3.0` :**
+   * Alors que les historiques `0x0A00` (24h, 55 octets) et `0x0B00` (30j, 127 octets) respectent strictement le checksum standard `(1 + sum) & 0xFF` sur `HW 3.0`, la trame `0x0C00` (12m, 55 octets) présente sur `HW 3.0` un décalage constant observé (`Expected - Got = 0x4C`) tout en s'incrémentant linéairement de `+1` à chaque `+1 Wh` ajouté au mois courant *(point réservé pour investigation dédiée)*.
+
+#### 4. Révolution de la Cinématique de Comptage d'Énergie sur `HW 3.0 / FW 1.30` (`exp_17`)
+Le suivi haute cadence (~1 Hz) sous charge réelle (`488 W` puis `890 W`) en milieu d'heure (`17:30:50 -> 17:32:05`) puis lors du franchissement d'heure pile (`17:59:50 -> 18:00:15`) a démontré que le `HW 3.0` adopte une architecture de comptage radicalement plus moderne que le `HW 2.0` :
+
+| Comportement / Registre | **`Hardware 2.0 / Firmware 1.24`** | **`Hardware 3.0 / Firmware 1.30`** |
+| :--- | :--- | :--- |
+| **Octets `[12..13]` de `0x0400`** | Toujours `0x0000` | `0x0100` |
+| **Compteur `totalKwhWh` (`0x0400[14..17]`)** | **Inactif** (toujours figé à `0 Wh`) | **Actif & Persisté en Flash** (ex: `33 949 -> 33 967 -> 33 985 Wh`) |
+| **Mise à jour de `hourlyWh[23]` (`0x0A00`)** | Temps réel à chaque **`+1 Wh`** ; remis à `0` à `HH:00:00` | Temps réel à chaque **`+1 Wh`** ; remis à `0` à `HH:00:00` |
+| **Mise à jour de `dailyWh[29]` (`0x0B00`)** | **Différée à l'heure pile (`HH:00:00`)** uniquement | **Temps réel à chaque `+1 Wh`** (simultanée avec `hourlyWh[23]`) |
+| **Mise à jour de `monthlyWh[11]` (`0x0C00`)** | **Différée à l'heure pile (`HH:00:00`)** uniquement | **Temps réel à chaque `+1 Wh`** (simultanée avec `hourlyWh[23]`) |
+| **Mise à jour de `totalKwhWh` (`0x0400`)** | Jamais (`0`) | **À chaque heure pile (`HH:00:00`)** : `totalKwhWh += H_fermée` |
+
+* **Loi n°1 (`HW 3.0`) — Intégration événementielle au quantum `+1 Wh` (*« Pas de conso, pas de calcul »*) :**
+  Sur `HW 3.0`, le report vers le jour courant `dailyWh[29]` et le mois courant `monthlyWh[11]` n'attend **ni l'heure pile (`HH:00:00`), ni la minute pile (`XX:XX:00`)**. À l'instant précis où l'intégrateur franchit `+1 Wh`, les trois registres `hourlyWh[23]`, `dailyWh[29]` et `monthlyWh[11]` sont incrémentés simultanément de `+1 Wh`.
+  * ⚠️ **Corollaire critique (Anti-Double Comptage) :** Sur `HW 3.0`, `dailyWh[29]` et `monthlyWh[11]` **incluent déjà l'heure en cours `hourlyWh[23]`** à chaque instant. Lors du franchissement de `HH:00:00`, `hourlyWh[23]` glisse dans `hourlyWh[22]` et repart à `0 Wh`, tandis que `dailyWh[29]` et `monthlyWh[11]` poursuivent leur progression sans double addition.
+* **Loi n°2 (`HW 3.0`) — Cinématique atomique de `totalKwhWh` (`0x0400`) à l'heure pile :**
+  Le registre 32 bits `totalKwhWh` de la trame `0x0400` représente le **cumul perpétuel en mémoire Flash de toutes les heures révolues** depuis la mise en service (ou le dernier reset conso) de la prise.
+  * Pendant toute la durée d'une heure, `totalKwhWh` reste constant (zéro usure Flash inutile).
+  * À l'instant exact de la bascule d'heure pile (`HH:00:00`, démontré à la ligne 6 du Volet 2 d'`exp_17` : passage de `33 967` à `33 985 Wh` pour une heure fermée à `18 Wh`), le firmware committe atomiquement l'heure écoulée dans `totalKwhWh` au moment même où `hourlyWh[23]` retombe à `0 Wh`.
+* **Loi n°3 (`HW 3.0`) — Formule exacte de l'Index Perpétuel Temps Réel au Wh près :**
+  En combinant le cumul Flash des heures révolues (`totalKwhWh`) et l'accumulateur RAM de l'heure en cours (`hourlyWh[23]`), la passerelle dispose sur `HW 3.0` d'un **index perpétuel matériel exact à la seconde près et sans aucune discontinuité à l'heure pile** :
+  $$\mathbf{E_{\text{perpétuel (HW 3.0)}}(t) = \texttt{totalKwhWh}_{\texttt{0x0400}}(t) + \texttt{hourlyWh[23]}_{\texttt{0x0A00}}(t)}$$
+  *(Exemple d'`exp_17` autour de `18:00:00` : à `17:59:54`, $33\,967 + 18 = 33\,985\text{ Wh}$ ; à `17:59:55` après bascule, $33\,985 + 0 = 33\,985\text{ Wh}$ ; 5 s plus tard, $33\,985 + 1 = 33\,986\text{ Wh}$).*
+  De plus, `totalKwhWh` survivant en Flash aux débranchements secteur, **une prise `HW 3.0` ne perd jamais son index perpétuel global lors d'une coupure de courant**.
+
+---
+
+## 3. Architecture Logicielle Cible & Stratégie Bi-Génération (`HW 2.0` + `HW 3.0`)
+
+L'architecture est découpée en trois couches distinctes pour isoler le protocole BLE bas niveau de la logique métier et du réseau, permettant **au même binaire ESP32-S3 de piloter de manière transparente un parc mixte de prises `HW 2.0` et `HW 3.0`** :
 
     GatewaySEM6000/
     ├── docs/
-    │   └── ARCHITECTURE.md          # Spécifications techniques (ce fichier)
+    │   └── architecture.md          # Spécifications techniques (ce fichier - SSOT)
     ├── lib/
-    │   └── SEM6000Device/           # Couche 1 : Pilote BLE pur (NimBLE)
+    │   └── SEM600Device/            # Couche 1 : Pilote BLE pur bi-génération (NimBLE)
     │       ├── SEM6000Device.h
     │       └── SEM6000Device.cpp
     └── src/
         ├── ManagedSEM6000.h/.cpp    # Couche 2 : Machine à états, horloge & Index Perpétuel
         ├── SEM6000Manager.h/.cpp    # Couche 3 : Ordonnanceur multi-prises & Queue BLE
-        └── main.cpp                 # Wi-Fi, NTP, Client Domoticz & Boucle principale
+        └── main.cpp                 # Wi-Fi, NTP, Client Domoticz/MQTT & Boucle principale
 
-### Couche 1 : `SEM6000Device` (Validée — v0.3.8)
-* Encapsule uniquement la communication GATT/NimBLE avec une prise (connexion, authentification 32 bits, commandes ON/OFF, synchronisation horloge, lecture `FFF2`, `0x0400` et historiques).
+### Couche 1 : `SEM6000Device` (Pilote BLE Unifié `HW 2.0` / `HW 3.0`)
+* Encapsule uniquement la communication GATT/NimBLE avec une prise (connexion, authentification 32 bits, commandes ON/OFF, synchronisation horloge, lecture `FFF2` si présente, `0x0400` et historiques).
+* **Adaptations bi-génération transparentes (cible `v0.3.9`) :**
+  1. **Détection automatique du profil matériel :** Dès `connect()`, l'absence de la caractéristique `0xFFF2` (`m_pCharFFF2 == nullptr`) ou la lecture de `0xFFF1` (`hwMajor == 3`) identifie nativement une prise `HW 3.0`.
+  2. **Décodage par longueur logique dans `handleNotification()` :** Utilisation de `expectedLen = m_rxBuffer[1] + 4` pour localiser le marqueur `FF FF` et le checksum, éliminant automatiquement le padding `00 00` des paquets de 20 octets du `HW 3.0` (ex. `0x1000`).
+  3. **Acquittement polymorphe `CMD_SET_3B` (`0x0F00`) :** Validation de `m_rxBuffer[5] == 0x00` lorsque la réponse fait 9 octets (`HW 2.0`) ou de `m_rxBuffer[4] == 0x00` lorsqu'elle fait 8 octets (`HW 3.0`).
+  4. **Tolérance / Adaptation du Checksum `0x0C00` sur `HW 3.0` :** Prise en compte de la règle de checksum propre à `0x0C00` sur `HW 3.0` (à finaliser).
 * Accesseurs standardisés sur les historiques :
   * `hourlyWh[23 - hoursAgo]`
   * `dailyWh[29 - daysAgo]`
   * `monthlyWh[11 - monthsAgo]`
 
-### Couche 2 : `ManagedSEM6000`
-Encapsule une instance `SEM6000Device` pour garantir la continuité des données et l'intégrité de la base Domoticz :
+### Couche 2 : `ManagedSEM6000` (Machine à États & Index Perpétuel Bi-Génération)
+Encapsule par **composition forte** une instance `SEM6000Device` et adapte automatiquement sa stratégie selon la génération matérielle (`HW 2.0` vs `HW 3.0`) :
 
-1. **Détection d'amnésie & Remise à l'heure prioritaire :**
-   * Lecture de `FFF2` sans authentification. Si octets `[0..1] == 0xFFFF`, déclenchement immédiat dès la première seconde d'une commande `setDateTime()` avec l'heure NTP afin de minimiser la fenêtre pendant laquelle la prise ne compte pas l'énergie et de démasquer les historiques Flash.
-
-2. **Reconstruction de l'Index Perpétuel 32 bits (`uint32_t indexWh`) & Monotonie Stricte :**
-   * **Règle absolue d'émission Domoticz :**
+1. **Calcul de l'Index Perpétuel 32 bits (`uint32_t indexWh`) & Monotonie Stricte :**
+   * **Sur `Hardware 3.0` (Mode Natif Matériel) :**
+     Utilisation directe du compteur perpétuel Flash de la prise combiné à l'heure en cours :
+     $$E_{\text{calculé}} = \text{Offset}_{\text{Domoticz}} + \texttt{totalKwhWh}_{\texttt{0x0400}} + \texttt{hourlyWh[23]}_{\texttt{0x0A00}}$$
+     Ce mode ne nécessite aucune détection de coupure secteur pour la survie de l'index et ne souffre d'aucune dérive même si l'ESP32 reste éteint plusieurs semaines.
+   * **Sur `Hardware 2.0` (Mode Reconstruction Logicielle NVS) :**
+     `totalKwhWh` étant figé à `0`, la Couche 2 intègre les incréments de `hourlyWh[23]`, détecte le franchissement asynchrone d'heure pile (`hourlyWh[23] < m_lastHourly23` avec récupération du solde dans `hourlyWh[22]`) et effectue le rattrapage multi-échelles post-panne (`hourlyWh[24]`, `dailyWh[30]`, `monthlyWh[12]`).
+   * **Garde-fou universel d'émission Domoticz (commun `HW 2.0` & `HW 3.0`) :**
      $$\text{Index}_{\text{transmis}} = \max(\text{Index}_{\text{calculé}}, \text{Index}_{\text{Domoticz}})$$
-     L'ESP32 ne transmet **jamais** un index inférieur au précédent afin d'éviter les débordements 32 bits dévastateurs dans la base SQLite de Domoticz.
-   * **Initialisation par interrogation Domoticz :** Au démarrage de la passerelle (ou lors du remplacement à neuf d'un ESP32 sans NVS), interrogation de l'API HTTP/JSON (`/json.htm?type=command&param=getdevices&rid=IDX`) pour caler la ligne de base sur l'index officiel de Domoticz.
+     L'ESP32 ne transmet **jamais** un index inférieur au précédent afin d'éviter tout débordement 32 bits dans la base SQLite de Domoticz.
 
-3. **Traitement Asynchrone du Franchissement d'Heure Pile :**
-   * L'ESP32 n'a pas besoin d'être connecté à `HH:00:00` pile.
-   * La condition `hourlyWh[23] < m_lastHourly23` suffit à certifier de manière asynchrone que l'heure a basculé côté prise : la fin de l'heure précédente est scellée dans `hourlyWh[22]` et le début de l'heure en cours dans `hourlyWh[23]`, sans aucun trou de comptage.
-   * Si `hourlyWh[23] == m_lastHourly23 == 0` (charge nulle ou relais coupé), l'index reste parfaitement stable.
+2. **Détection d'Amnésie Horloge & Maintien à l'Heure NTP :**
+   * **Sur `Hardware 2.0` :** Lecture rapide de `0xFFF2` sans PIN. Si `Word0 == 0xFFFF` (coupure secteur $\ge 30\text{ s}$), injection immédiate de `setDateTime()` pour démasquer la Flash et relancer le comptage.
+   * **Sur `Hardware 3.0` (`0xFFF2` absente) :** Vérification périodique par la **Sonde Temporelle Furtive (`0x0900`)** et recalage en « Havre de Paix » (`HH:30:00`) uniquement si $|\text{Dérive}| \ge 5\text{ s}$.
+
+3. **Surveillance de Surcharge :**
+   * **Sur `Hardware 2.0` :** Surveillance légère via `0xFFF2` (`Word1` vs `Word0`).
+   * **Sur `Hardware 3.0` :** Comparaison directe lors du poll `0x0400` entre la puissance active mesurée $P_{\text{mesurée}}$ (ou $I_{\text{mesuré}}$) et la consigne $P_{\max}$ mise en cache lors de la lecture initiale de `0x1000`.
 
 4. **Résilience et Rattrapage Multi-Échelles Post-Panne :**
    Au redémarrage après une absence prolongée (coupure Wi-Fi, crash ESP32, vacances), calcul de $\Delta T = T_{\text{NTP}} - T_{\text{NVS}}$ :

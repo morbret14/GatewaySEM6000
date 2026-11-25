@@ -1,5 +1,11 @@
 # Directives et Règles du Projet GatewaySEM6000
 
+## 0. Posture Collaborative & Gouvernance de Travail (Règle Cardinale)
+* **Travail en binôme & Accord préalable obligatoire :** Lorsque l'utilisateur formule une remarque, partage une réflexion ou demande un avis (*« Ton avis ? »*, *« Qu'en penses-tu ? »*, etc.), **ne jamais enclencher d'action** (création, modification, suppression, restructuration de fichiers ou lancement de compilation) avant d'avoir exposé l'analyse/proposition et obtenu son **accord explicite**.
+* **Zéro fait accompli :** Ne jamais placer l'utilisateur devant le fait accompli. La démarche d'investigation, de dialogue et de compréhension partagée prime sur la vitesse d'exécution, sauf instruction explicite contraire de l'utilisateur (*« Vas-y, code et compile »*).
+
+---
+
 ## 1. Référence Technique Unique (SSOT)
 La spécification technique complète (détail du protocole BLE SEM6000, structure des trames, registres d'historiques, logique de calcul d'énergie et intégration Domoticz) est consignée dans :
 👉 `docs/architecture.md`
@@ -34,3 +40,23 @@ Consulter systématiquement ce document pour toute implémentation ou ajustement
 * **Typage strict C++ :** Pour `authenticate32()`, toujours typer explicitement le code PIN en `(uint32_t)0x00000000` pour éviter l'ambiguïté de surcharge avec `const uint8_t*`.
 * **Séquencement radio BLE :** Ne jamais lancer d'opérations BLE concurrentes sur plusieurs prises simultanément ; toujours sérialiser les connexions.
 * **Code non-bloquant :** Bannir les boucles d'attente bloquantes (`delay()`) pouvant perturber les tâches système ou déclencher le chien de garde (Watchdog ESP32).
+
+---
+
+## 5. Directives Systèmes & Rigueur Embarquée (ESP32-S3 / C++)
+
+### A. Gestion Stricte de la Mémoire & Anti-Fragmentation
+* **Bannissement de la classe `String` :** L'usage de `String` (Arduino) est formellement interdit dans le code opérationnel nominal (Couches 2 et 3). Utiliser exclusivement des buffers fixes `char[]`, des pointeurs/longueurs ou `std::string_view` pour prévenir toute fragmentation du tas (*Heap*).
+* **Zéro Allocation Dynamique Volatile :** Aucun `malloc()`, `calloc()` ou `new` dans les boucles de traitement (`loop()`, `update()`). Les instances de prises et buffers de travail doivent être alloués statiquement au démarrage (`setup()`).
+* **SRAM Interne vs PSRAM (ESP32-S3) :** 
+  * Tous les buffers DMA, descripteurs NimBLE, variables de synchronisation inter-cœurs et piles de tâches FreeRTOS doivent résider impérativement en **SRAM Interne**.
+  * Réserver l'usage de la PSRAM externe (`MALLOC_CAP_SPIRAM`) uniquement aux structures volumineuses non soumises au DMA direct (ex. tables de diagnostic étendues, historiques passifs volumineux).
+
+### B. Concurrence, Multi-Cœur & FreeRTOS
+* **Cloisonnement Dual-Core :** Identifier explicitement le cœur d'exécution. Les opérations radio (stacks Wi-Fi et BLE NimBLE sur Core 0) et l'application métier (Core 1) ne doivent pas partager d'états mutables sans synchronisation explicite.
+* **Synchronisation Sécurisée :** Protéger toute ressource partagée via `SemaphoreHandle_t` (Mutex FreeRTOS) ou sections critiques légères (`portMUX_TYPE`). Toujours privilégier le pattern RAII pour le verrouillage/déverrouillage.
+* **Règles d'ISR (Interruptions) :** Toute routine d'interruption doit porter l'attribut `IRAM_ATTR`. Zéro allocation mémoire, zéro appel système bloquant dans une ISR ; communication exclusive vers les tâches via Queues FreeRTOS avec réveil différé (`xHigherPriorityTaskWoken`).
+
+### C. Architecture C++ & Modélisation Objet
+* **Pattern par Composition Forte :** Respecter la composition forte (has-a) plutôt que l'héritage (is-a) entre les couches (ex: `ManagedSEM6000` encapsule en membre privé un `SEM6000Device`).
+* **Zéro Avertissement de Compilation :** Respecter le typage strict des formats `printf` (spécificateur `%lu` pour les types `uint32_t` sur toolchain Xtensa) pour garantir un build 100 % silencieux.
