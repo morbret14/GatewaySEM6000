@@ -1,0 +1,158 @@
+SEM6000 - DOCUMENTATION PROTOCOLE
+SECTION 5 : RANDOM MODE
+Version : 0.2.3.4 (Alignement Bi-Génération Hardware 2.0 / FW 1.24 & Hardware 3.0 / FW 1.30)
+
+Source : API.md & Rétro-ingénierie expérimentale (exp_13, exp_15, exp_22, exp_23)
+
+============================================================
+1. PRÉSENTATION GÉNÉRALE
+============================================================
+
+Le mode Random (Mode Aléatoire / Simulation de présence) permet d'effectuer
+des commutations aléatoires du relais dans une plage horaire et selon des
+jours de la semaine définis.
+
+La configuration est persistée en mémoire Flash non volatile (conservée après
+une coupure secteur sur HW 2.0 et HW 3.0 ; préservée lors d'un Reset Consumption
+Data 0x0F0002 ; réinitialisée lors d'un Factory Reset 0x0F0000).
+
+Le fonctionnement repose sur :
+
+- un état d'activation (0x00 = Inactif / OFF, 0x01 = Actif / ON)
+- un masque binaire des jours de la semaine (Weekday Mask)
+- une heure et minute de début
+- une heure et minute de fin
+
+Commandes utilisées (strictement identiques entre Hardware 2.0 et Hardware 3.0) :
+
+1600 = Get Random Mode
+1500 = Set Random Mode
+
+============================================================
+2. GET RANDOM MODE
+============================================================
+
+OBJECTIF
+
+Lire la configuration actuelle du mode aléatoire.
+
+============================================================
+TRAME DE REQUÊTE (9 OCTETS)
+============================================================
+
+Valeur :
+
+0F 05 16 00 00 00 17 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 05        : longueur de la payload incluant la checksum
+Octets 3-4   : 1600      : commande Get Random Mode Status
+Octets 5-6   : 0000      : valeur fixe
+Octet 7      : 17        : checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 8-9   : FFFF      : séquence de fin statique
+
+============================================================
+NOTIFICATION DE RÉPONSE (15 OCTETS - IDENTIQUE HW 2.0 & HW 3.0)
+============================================================
+
+Valeur (Exemple 1 - API.md) :
+0F 0B 16 00 01 55 02 03 04 05 00 00 7B FF FF
+
+Valeur (Exemple 2 - Configuration d'usine au repos sur Hardware 2.0 / FW 1.24, exp_23) :
+0F 0B 16 00 00 00 00 00 00 00 00 00 17 FF FF
+(Inactif, mask = 0x00, plage = 00:00 -> 00:00)
+
+Valeur (Exemple 3 - Configuration d'usine au repos sur Hardware 3.0 / FW 1.30, exp_23) :
+0F 0B 16 00 00 FF 14 00 08 00 00 00 32 FF FF
+(Inactif, mask = 0xFF, plage préconfigurée = 20:00 -> 08:00)
+
+Valeur (Exemple 4 - Mode Random actif sur plage nocturne 22:00 -> 05:00 tous les jours, HW 2.0 & HW 3.0, exp_23) :
+0F 0B 16 00 01 7F 16 00 05 00 00 00 B2 FF FF
+
+============================================================
+DÉCODAGE COMPLET (SUR EXEMPLE 1)
+============================================================
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0B        : longueur de la payload incluant la checksum (11 octets -> trame totale de 15 octets)
+Octets 3-4   : 1600      : commande Get Random Mode
+Octet 5      : 01        : État Random Mode (00 = Désactivé, 01 = Activé)
+Octet 6      : 55        : Weekday Mask (0x55 = 01010101b) :
+                           0x01 = Dimanche
+                           0x02 = Lundi
+                           0x04 = Mardi
+                           0x08 = Mercredi
+                           0x10 = Jeudi
+                           0x20 = Vendredi
+                           0x40 = Samedi
+                           0x7F = Tous les jours (7 jours actifs)
+Octet 7      : 02        : Heure début (00..17)
+Octet 8      : 03        : Minute début (00..3B)
+Octet 9      : 04        : Heure fin (00..17)
+Octet 10     : 05        : Minute fin (00..3B)
+Octets 11-12 : 0000      : valeur fixe
+Octet 13     : 7B        : checksum -> 1 + somme des octets 3 à 12 inclus (100 % conforme sur HW 2.0 et HW 3.0)
+Octets 14-15 : FFFF      : séquence de fin statique
+
+============================================================
+3. SET RANDOM MODE
+============================================================
+
+OBJECTIF
+
+Activer, modifier ou désactiver la configuration du mode aléatoire.
+
+============================================================
+TRAME DE REQUÊTE (15 OCTETS)
+============================================================
+
+Valeur (Exemple : Activation tous les jours de 22:00 à 05:00 - exp_23) :
+
+0F 0B 15 00 01 7F 16 00 05 00 00 00 B1 FF FF
+
+============================================================
+DÉCODAGE
+============================================================
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0B        : longueur de la payload incluant la checksum (11 octets -> trame totale de 15 octets)
+Octets 3-4   : 1500      : commande Set Random Mode
+Octet 5      : 01        : État (00 = OFF / Désactivé, 01 = ON / Activé)
+Octet 6      : 7F        : Weekday Mask (0x7F = tous les jours)
+Octet 7      : 16        : Heure début (22h)
+Octet 8      : 00        : Minute début (00m)
+Octet 9      : 05        : Heure fin (05h)
+Octet 10     : 00        : Minute fin (00m)
+Octets 11-12 : 0000      : valeur fixe
+Octet 13     : B1        : checksum -> 1 + somme des octets 3 à 12 inclus
+Octets 14-15 : FFFF      : séquence de fin statique
+
+============================================================
+NOTIFICATION DE RÉPONSE (8 OCTETS - IDENTIQUE HW 2.0 & HW 3.0)
+============================================================
+
+Valeur :
+
+0F 04 15 00 00 16 FF FF
+
+============================================================
+DÉCODAGE
+============================================================
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 04        : longueur de la payload incluant la checksum
+Octets 3-4   : 1500      : commande Set Random Mode
+Octet 5      : 00        : résultat (00 = succès, 01 = échec)
+Octet 6      : 16        : checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+100 % (Validé sur banc matériel réel HW 2.0 / FW 1.24 et HW 3.0 / FW 1.30 dans exp_23).
+
+============================================================
+FIN DU FICHIER 5
+SECTION RANDOM MODE (Version 0.2.3.4)
+============================================================

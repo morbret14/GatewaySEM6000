@@ -1,0 +1,102 @@
+########################################################################################################################
+ 🕰️ EXPÉRIENCE 20 : SONDE FANTÔME TIMER (0x0800/0x0900) & ANALYSE DE 0x0100 SUR VÉLO HW 3.0 (a3:00:00:00:45:25)
+########################################################################################################################
+  📡 Télémétrie 0x0400 brute : 0F 0F 04 00 01 00 00 00 DE 00 00 32 01 00 00 00 84 D3 6E  (Octets[12..13] = 0x01 0x00)
+
+================================================================================================================
+ 🔍 ÉTAPE 1 : AUSCULTATION EN LECTURE SEULE (APRÈS SYNCHRO PAR L'APPLICATION VOLTCRAFT)
+================================================================================================================
+
+  ----------------------------------------------------------------------------------------------------------------
+  📊 ÉTAT DES HISTORIQUES : ÉTAT INITIAL (Avant tout setDateTime)
+  ----------------------------------------------------------------------------------------------------------------
+  🕒 0x0A00 (24h) | Cumul=  54 Wh | CS_Exp=0x41 | CS_Got=0x14 | Écart(Exp-Got)=0x2D ( 45) | Slots>0: [01]=18 [02]=18 [03]=9 [19]=9 
+  📅 0x0B00 (30j) | Cumul=  54 Wh | CS_Exp=0x42 | CS_Got=0x42 | Écart(Exp-Got)=0x00 (  0) | Slots>0: [28]=45 [29]=9 
+  📆 0x0C00 (12m) | Cumul=4324 Wh | CS_Exp=0x08 | CS_Got=0x76 | Écart(Exp-Got)=0x92 (146) | Slots>0: [01]=458(1%) [02]=399(0%) [04]=333(2%) [05]=494(2%) [06]=576(3%) [07]=551(1%) [08]=883(0%) [09]=257(0%) [10]=319(1%) [11]=54(0%) 
+
+  🧊 Lecture 0x0900 à froid (sans armement) : 0F 0E 09 00 00 00 1E 12 19 0B 1A 00 00 00 00 78 FF FF 
+
+  🕵️♂️ [SONDE 1A (Cible 26/11/2026 23:00:00)] -> Cible envoyée : 26/11/2026 à 23:00:00
+     TX 0x0800 (Arm)  : 0F 0C 08 00 01 00 00 17 1A 0B 1A 00 00 60 FF FF 
+     RX 0x0800 (Ack)  : 0F 04 08 00 00 09 FF FF 
+     RX 0x0900 (Brut) : 0F 0E 09 00 01 00 00 17 1A 0B 1A 00 48 94 00 3D FF FF 
+     -> Décodage 0x0900 : Action=0x01 | Écho Cible=26/11/2026 23:00:00 | Δt retourné=[00h 72m 148s] (4468 s)
+     ⏰ HEURE INTERNE DÉDUITE (Cible - Δt) : 21:45:32 (Si Δt > 24h : 0 jour(s) + 01h 14m 28s)
+
+  🕵️♂️ [SONDE 1B (Cible 26/11/2026 23:30:00 -> +30 min)] -> Cible envoyée : 26/11/2026 à 23:30:00
+     TX 0x0800 (Arm)  : 0F 0C 08 00 01 00 1E 17 1A 0B 1A 00 00 7E FF FF 
+     RX 0x0800 (Ack)  : 0F 04 08 00 00 09 FF FF 
+     RX 0x0900 (Brut) : 0F 0E 09 00 01 00 1E 17 1A 0B 1A 00 4F 9C 00 6A FF FF 
+     -> Décodage 0x0900 : Action=0x01 | Écho Cible=26/11/2026 23:30:00 | Δt retourné=[00h 79m 156s] (4896 s)
+     ⏰ HEURE INTERNE DÉDUITE (Cible - Δt) : 22:08:24 (Si Δt > 24h : 0 jour(s) + 01h 21m 36s)
+
+  🕵️♂️ [SONDE 1C (Cible 26/03/2026 23:00:00 -> Mois 03)] -> Cible envoyée : 26/03/2026 à 23:00:00
+     TX 0x0800 (Arm)  : 0F 0C 08 00 01 00 00 17 1A 03 1A 00 00 58 FF FF 
+     RX 0x0800 (Ack)  : 0F 04 08 00 00 09 FF FF 
+     RX 0x0900 (Brut) : 0F 0E 09 00 01 00 00 17 1A 03 1A BD 49 14 00 73 FF FF 
+     -> Décodage 0x0900 : Action=0x01 | Écho Cible=26/03/2026 23:00:00 | Δt retourné=[189h 73m 20s] (684800 s)
+     ⏰ HEURE INTERNE DÉDUITE (Cible - Δt) : 00:46:40 (Si Δt > 24h : 7 jour(s) + 22h 13m 20s)
+
+  📌 BILAN ÉTAPE 1 : Mois actif retenu = 11/2026 | Heure interne mesurée = 21:45:32 | Diff(1B - 1A) = 428 s (Attendu: +1800 s)
+
+================================================================================================================
+ 🧪 ÉTAPE 2 : TEST DES 3 VARIANTES DE SETDATETIME (0x0100) VÉRIFIÉES PAR LA SONDE TIMER
+================================================================================================================
+
+  🛠️ [VARIANTE 2A : Format HW 2.0 standard (14:00:00, Year=07 EA, B11..12=00 00)]
+     TX 0x0100 : 0F 0C 01 00 00 00 0E 1A 0B 07 EA 00 00 26 FF FF 
+     RX 0x0100 : 0F 04 01 00 00 02 FF FF  (ok=OUI)
+
+  🕵️♂️ [VÉRIFICATION SONDE 2A (Attendu si 14:00:00 pris en compte : Δt = 09h 00m 00s)] -> Cible envoyée : 26/11/2026 à 23:00:00
+     TX 0x0800 (Arm)  : 0F 0C 08 00 01 00 00 17 1A 0B 1A 00 00 60 FF FF 
+     RX 0x0800 (Ack)  : 0F 04 08 00 00 09 FF FF 
+     RX 0x0900 (Brut) : 0F 0E 09 00 01 00 00 17 1A 0B 1A 00 7E 90 00 6F FF FF 
+     -> Décodage 0x0900 : Action=0x01 | Écho Cible=26/11/2026 23:00:00 | Δt retourné=[00h 126m 144s] (7704 s)
+     ⏰ HEURE INTERNE DÉDUITE (Cible - Δt) : 20:51:36 (Si Δt > 24h : 0 jour(s) + 02h 08m 24s)
+
+  🛠️ [VARIANTE 2B : Avec [B11..B12] = 01 00 (13:00:00, Year=07 EA, B11..12=01 00)]
+     TX 0x0100 : 0F 0C 01 00 00 00 0D 1A 0B 07 EA 01 00 26 FF FF 
+     RX 0x0100 : 0F 04 01 00 00 02 FF FF  (ok=OUI)
+
+  🕵️♂️ [VÉRIFICATION SONDE 2B (Attendu si 13:00:00 pris en compte : Δt = 10h 00m 00s)] -> Cible envoyée : 26/11/2026 à 23:00:00
+     TX 0x0800 (Arm)  : 0F 0C 08 00 01 00 00 17 1A 0B 1A 00 00 60 FF FF 
+     RX 0x0800 (Ack)  : 0F 04 08 00 00 09 FF FF 
+     RX 0x0900 (Brut) : 0F 0E 09 00 01 00 00 17 1A 0B 1A 00 8C A0 00 8D FF FF 
+     -> Décodage 0x0900 : Action=0x01 | Écho Cible=26/11/2026 23:00:00 | Δt retourné=[00h 140m 160s] (8560 s)
+     ⏰ HEURE INTERNE DÉDUITE (Cible - Δt) : 20:37:20 (Si Δt > 24h : 0 jour(s) + 02h 22m 40s)
+
+  🛠️ [VARIANTE 2C : Année 1 octet 0x1A (12:00:00, B9=1A, B10=00, B11..12=00 00)]
+     TX 0x0100 : 0F 0C 01 00 00 00 0C 1A 0B 1A 00 00 00 4D FF FF 
+     RX 0x0100 : 0F 04 01 00 00 02 FF FF  (ok=OUI)
+
+  🕵️♂️ [VÉRIFICATION SONDE 2C (Attendu si 12:00:00 pris en compte : Δt = 11h 00m 00s)] -> Cible envoyée : 26/11/2026 à 23:00:00
+     TX 0x0800 (Arm)  : 0F 0C 08 00 01 00 00 17 1A 0B 1A 00 00 60 FF FF 
+     RX 0x0800 (Ack)  : 0F 04 08 00 00 09 FF FF 
+     RX 0x0900 (Brut) : 0F 0E 09 00 01 00 00 17 1A 0B 1A 10 84 B0 00 A5 FF FF 
+     -> Décodage 0x0900 : Action=0x01 | Écho Cible=26/11/2026 23:00:00 | Δt retourné=[16h 132m 176s] (65696 s)
+     ⏰ HEURE INTERNE DÉDUITE (Cible - Δt) : 04:45:04 (Si Δt > 24h : 0 jour(s) + 18h 14m 56s)
+
+================================================================================================================
+ 🔄 ÉTAPE 3 : RESTAURATION DE L'HEURE INITIALE & VÉRIFICATION FINALE
+================================================================================================================
+
+  🛠️ [RESTAURATION HEURE INITIALE (Format 07 EA / 00 00)]
+     TX 0x0100 : 0F 0C 01 00 20 2D 15 1A 0B 07 EA 00 00 7A FF FF 
+     RX 0x0100 : 0F 04 01 00 00 02 FF FF  (ok=OUI)
+
+  🕵️♂️ [SONDE FINALE APRÈS RESTAURATION] -> Cible envoyée : 26/11/2026 à 23:00:00
+     TX 0x0800 (Arm)  : 0F 0C 08 00 01 00 00 17 1A 0B 1A 00 00 60 FF FF 
+     RX 0x0800 (Ack)  : 0F 04 08 00 00 09 FF FF 
+     RX 0x0900 (Brut) : 0F 0E 09 00 01 00 00 17 1A 0B 1A 00 11 74 00 E6 FF FF 
+     -> Décodage 0x0900 : Action=0x01 | Écho Cible=26/11/2026 23:00:00 | Δt retourné=[00h 17m 116s] (1136 s)
+     ⏰ HEURE INTERNE DÉDUITE (Cible - Δt) : 22:41:04 (Si Δt > 24h : 0 jour(s) + 00h 18m 56s)
+
+  ----------------------------------------------------------------------------------------------------------------
+  📊 ÉTAT DES HISTORIQUES : ÉTAT FINAL DES HISTORIQUES
+  ----------------------------------------------------------------------------------------------------------------
+  🕒 0x0A00 (24h) | Cumul=  54 Wh | CS_Exp=0x41 | CS_Got=0x14 | Écart(Exp-Got)=0x2D ( 45) | Slots>0: [01]=18 [02]=18 [03]=9 [19]=9 
+  📅 0x0B00 (30j) | Cumul=  54 Wh | CS_Exp=0x42 | CS_Got=0x42 | Écart(Exp-Got)=0x00 (  0) | Slots>0: [28]=45 [29]=9 
+  📆 0x0C00 (12m) | Cumul=4324 Wh | CS_Exp=0x08 | CS_Got=0x76 | Écart(Exp-Got)=0x92 (146) | Slots>0: [01]=458(1%) [02]=399(0%) [04]=333(2%) [05]=494(2%) [06]=576(3%) [07]=551(1%) [08]=883(0%) [09]=257(0%) [10]=319(1%) [11]=54(0%) 
+
+[BLE] ✅ Expérience 20 terminée et déconnectée.
+########################################################################################################################

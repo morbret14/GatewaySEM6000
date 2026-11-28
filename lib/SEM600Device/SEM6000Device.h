@@ -1,12 +1,26 @@
 /*
- * SEM6000Device.h - Version 0.3.8
- * Interface unifiée BLE pour Voltcraft SEM6000-FR
+ * SEM6000Device.h - Version 0.4.0 — "La Grande Réunification (One Roof for Two Hardwares : HW 2.0 & HW 3.0)"
+ * Interface unifiée BLE Bi-Génération pour Voltcraft SEM6000-FR :
+ *   - Hardware 2.0 / Firmware 1.24 (MTU 23, caractéristique 0xFFF2 présente)
+ *   - Hardware 3.0 / Firmware 1.30 (MTU 160, sans 0xFFF2, compteur Flash totalKwhWh actif)
  * Support hybride : PIN BCD (0..9999) & PIN32 Binaire (0x00000000..0xFFFFFFFF)
- * Harmonisation des commandes SET : CMD_SET_2B (statut index 4) et CMD_SET_3B (statut index 5)
+ *
+ * [Limites connues / TODO avant publication open-source publique] :
+ *   - Sur HW 3.0 / FW 1.30, l'octet de checksum des historiques 0x0A00 (24h, omission des premiers slots de gauche)
+ *     et 0x0C00 (12m, biais calendaire lié à la date RTC) diverge de la formule standard de HW 2.0.
+ *     La validation sur HW 3.0 s'appuie sur le paquet BLE monolithique (MTU 160, CRC-24 Link Layer) et la
+ *     vérification structurelle stricte (0x0F, longueur logique Byte[1]+4 = 55, marqueur de fin FF FF).
+ *     L'état de conformité mathématique de la dernière checksum reçue est exposé via wasLastChecksumValid().
  */
 
 #ifndef SEM6000_DEVICE_H
 #define SEM6000_DEVICE_H
+
+#define SEM6000_DEVICE_VERSION_MAJOR 0
+#define SEM6000_DEVICE_VERSION_MINOR 4
+#define SEM6000_DEVICE_VERSION_PATCH 0
+#define SEM6000_DEVICE_VERSION_HEX   0x000400
+#define SEM6000_DEVICE_VERSION_STR   "0.4.0"
 
 #include <Arduino.h>
 #include <NimBLEDevice.h>
@@ -21,7 +35,8 @@ enum SEM6000Status {
     SEM_ERR_BLE_WRITE_FAILED,
     SEM_ERR_TIMEOUT,
     SEM_ERR_RESPONSE_REJECTED,
-    SEM_ERR_NOTIFICATION
+    SEM_ERR_NOTIFICATION,
+    SEM_ERR_NOT_SUPPORTED
 };
 
 enum SEMCmdType {
@@ -106,12 +121,17 @@ public:
     bool isConnected() const { return m_connected; }
     bool isAuthorized() const { return m_authorized; }
 
+    // --- Identification Matérielle Bi-Génération (v0.4.0) ---
+    bool hasCharacteristicFFF2() const { return m_pCharFFF2 != nullptr; }
+    bool isHardwareV3() const { return m_connected && (m_pCharFFF2 == nullptr); }
+    bool wasLastChecksumValid() const { return m_lastChecksumValid; }
+
     // --- 1. PIN & Authentification ---
     // Méthodes historiques (PIN BCD 0..9999)
     SEM6000Status authenticate(uint32_t pin);
     SEM6000Status changePin(uint32_t oldPin, uint32_t newPin);
 
-    // Nouvelles méthodes v0.3.5 : PIN Binaire 32 bits (0x00000000..0xFFFFFFFF)
+    // PIN Binaire 32 bits (0x00000000..0xFFFFFFFF)
     SEM6000Status authenticate32(const uint8_t pin[4]);
     SEM6000Status authenticate32(uint32_t pinRaw);
     SEM6000Status changePin32(const uint8_t oldPin[4], const uint8_t newPin[4]);
@@ -163,7 +183,7 @@ public:
 
     // --- Outils d'inspection & Horloge ---
     bool readRawFFF2(uint16_t& word0, uint8_t& currentByte, float& currentAmpsDirect);
-    SEM6000Status checkAndFixClockLoss(uint8_t sec, uint8_t min, uint8_t hour, uint8_t day, uint8_t month, uint16_t year);
+    SEM6000Status checkAndFixClockLoss(uint8_t sec, uint8_t min, uint8_t hour, uint8_t day, uint8_t month, uint16_t year, bool* outClockLossDetected = nullptr);
     size_t getLastRxBuffer(const uint8_t** outBufPtr) const { *outBufPtr = m_rxBuffer; return m_rxLength; }
 
 private:
@@ -182,6 +202,8 @@ private:
     uint8_t m_rxBuffer[160];
     size_t m_rxLength;
     volatile bool m_rxReady;
+    volatile bool m_lastChecksumValid;
+    volatile uint16_t m_expectedCmd;
 
     uint8_t calculateChecksum(const uint8_t* buffer, size_t startIndex, size_t length);
     void handleNotification(NimBLERemoteCharacteristic* pRemoteChar, uint8_t* pData, size_t length);

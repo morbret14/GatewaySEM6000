@@ -1,0 +1,186 @@
+SEM6000 - DOCUMENTATION PROTOCOLE
+SECTION 3 : TIMER
+Version : 0.2.3.4 (Alignement Bi-Génération Hardware 2.0 / FW 1.24 & Hardware 3.0 / FW 1.30)
+
+Source : API.md & Rétro-ingénierie expérimentale (exp_11, exp_15, exp_20, exp_21, exp_22, exp_23)
+
+============================================================
+1. GET TIMER STATUS
+============================================================
+
+OBJECTIF
+
+Lire l'état du compte à rebours unitaire (Timer), la date/heure cible de déclenchement
+mémorisée en RAM et la durée en secondes sur 24 bits Big-Endian.
+
+TRAME DE REQUÊTE
+
+Valeur :
+0F 05 09 00 00 00 0A FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 05        : longueur de la payload incluant la checksum
+Octets 3-4   : 0900      : commande Request Timer Status
+Octets 5-6   : 0000      : valeur fixe
+Octet 7      : 0A        : checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 8-9   : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE (CAS TIMER ACTIF)
+
+Valeur (Exemple 1 - API.md) :
+0F 0E 09 00 01 10 04 10 08 07 13 01 51 45 00 E8 FF FF
+
+Valeur (Exemple 2 - Capture réelle exp_23 sur HW 2.0 & HW 3.0, horloge à 09:15:00, cible à 23:59:59) :
+0F 0E 09 00 01 3B 3B 17 1C 0B 1A 00 CF 6B 00 94 FF FF
+
+Décodage (sur Exemple 1) :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0E        : longueur de la payload incluant la checksum (14 octets -> trame totale de 18 octets)
+Octets 3-4   : 0900      : commande Timer Status
+Octet 5      : 01        : état et action programmée :
+                           - 00 = Timer inactif (désarmé ou arrivé à échéance)
+                           - 01 = Timer actif -> action basculer relais sur ON
+                           - 02 = Timer actif -> action basculer relais sur OFF
+Octet 6      : 10        : secondes de la date de déclenchement programmée : 16 (dans le référentiel RTC de la prise)
+Octet 7      : 04        : minutes de la date de déclenchement programmée : 04
+Octet 8      : 10        : heures de la date de déclenchement programmée : 16
+Octet 9      : 08        : jour du mois de la date de déclenchement programmée : 08
+Octet 10     : 07        : mois de la date de déclenchement programmée : 07
+Octet 11     : 13        : année (modulo 100) de la date de déclenchement programmée : 19 -> 2019/07/08 16:04:16
+Octets 12-14 : 01 51 45  : durée en SECONDES codée en entier non signé 24 bits Big-Endian :
+                           presetSeconds = (Octet12 << 16) | (Octet13 << 8) | Octet14
+                           - Exemple 1 : 0x015145 = 86 341 secondes (23h 59m 01s)
+                           - Exemple 2 : 0x00CF6B = 53 099 secondes (14h 44m 59s)
+Octet 15     : 00        : valeur fixe
+Octet 16     : E8        : checksum -> 1 + somme des octets 3 à 15 inclus
+Octets 17-18 : FFFF      : séquence de fin statique
+
+COMPORTEMENT COMPARÉ HARDWARE 2.0 vs HARDWARE 3.0 & COUPURE SECTEUR
+
+1. Comportement des Octets 6-11 et 12-14 après arrêt du Timer (STOP TIMER) :
+   - Sur Hardware 2.0 (FW 1.24) : lorsque le timer est actif ou stoppé, les octets 12-14 conservent
+     la durée initiale statique (T_cible - T_interne) calculée au moment du SET TIMER (0x0800).
+   - Sur Hardware 3.0 (FW 1.30) : tant que le timer est actif (Octet 5 = 01 ou 02), les octets 12-14
+     retournent l'écart (T_cible - T_interne) modulo 2^24 en secondes. Dès que le timer est stoppé
+     (Octet 5 = 00), les octets 12-14 retombent à 00 00 00 tandis que les octets 6-11 conservent en
+     RAM l'écho de la dernière date cible programmée.
+
+2. Volatilité en RAM & Signature de Coupure Secteur sur Hardware 3.0 (exp_22) :
+   - Contrairement aux Schedulers (0x1400) et au Random Mode (0x1600) sauvegardés en mémoire Flash,
+     le Timer unitaire réside exclusivement en RAM volatile : il est effacé en cas de coupure secteur.
+   - Sur Hardware 3.0 (dépourvu de la caractéristique 0xFFF2), au démarrage à froid après une coupure
+     secteur (alors que l'horloge RTC interne est réinitialisée et figée au 01/01/2020 à 00:00:00),
+     la commande GET TIMER STATUS (0x0900) retourne invariablement la signature RAM d'initialisation :
+     0F 0E 09 00 00 00 00 00 00 00 30 00 00 00 00 3A FF FF
+     (Octet 9 Jour = 00, Octet 10 Mois = 00, Octet 11 Année = 30h soit 2048).
+   - Cette propriété offre un détecteur de coupure secteur en 1 seule requête GET sur Hardware 3.0 :
+     si (Jour == 0x00 && Mois == 0x00), la prise vient de subir une coupure secteur et son horloge
+     doit être resynchronisée via 0x0100 (suivi d'un cycle furtif SET TIMER + STOP TIMER pour inscrire
+     une date non nulle dans les octets 9-10 en RAM).
+
+3. Sonde Temporelle Furtive (Lecture indirecte de l'horloge RTC à la seconde près - exp_20 à exp_23) :
+   - Le protocole ne disposant pas de commande GET DATETIME, l'armement éphémère d'un timer vers une
+     date cible connue T_cible (avec l'action identique à l'état actuel du relais), suivi immédiatement
+     d'un GET TIMER STATUS (0x0900) puis d'un STOP TIMER (0x0800), permet de déduire l'heure exacte de
+     l'horloge interne de la prise à la seconde près sur HW 2.0 comme sur HW 3.0 :
+     T_interne = T_cible - presetSeconds
+
+NIVEAU DE CONFIANCE
+
+100 % (Validé sur banc matériel réel HW 2.0 / FW 1.24 et HW 3.0 / FW 1.30).
+
+
+============================================================
+2. SET TIMER
+============================================================
+
+TRAME DE REQUÊTE
+
+Valeur :
+0F 0C 08 00 01 2D 1C 16 07 07 13 00 00 8A FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0C        : longueur de la payload incluant la checksum (12 octets -> trame totale de 16 octets)
+Octets 3-4   : 0800      : commande Set Timer
+Octet 5      : 01        : action timer à l'échéance (01 = basculer sur ON, 02 = basculer sur OFF)
+Octet 6      : 2D        : secondes de la date de déclenchement à programmer : 45
+Octet 7      : 1C        : minutes de la date de déclenchement à programmer : 28
+Octet 8      : 16        : heures de la date de déclenchement à programmer : 22
+Octet 9      : 07        : jour du mois de la date de déclenchement à programmer : 07
+Octet 10     : 07        : mois de la date de déclenchement à programmer : 07
+Octet 11     : 13        : année (modulo 100) de la date de déclenchement à programmer : 19 -> 2019/07/07 22:28:45
+Octets 12-13 : 0000      : valeur fixe
+Octet 14     : 8A        : checksum -> 1 + somme des octets 3 à 13 inclus
+Octets 15-16 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE (IDENTIQUE HW 2.0 & HW 3.0)
+
+Valeur :
+0F 04 08 00 00 09 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 04        : longueur de la payload incluant la checksum
+Octets 3-4   : 0800      : commande Set Timer
+Octet 5      : 00        : statut (00 = succès, 01 = échec)
+Octet 6      : 09        : checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+100 %
+
+
+============================================================
+3. STOP TIMER
+============================================================
+
+TRAME DE REQUÊTE
+
+Valeur :
+0F 0C 08 00 00 00 00 00 00 00 00 00 00 09 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0C        : longueur de la payload incluant la checksum (12 octets -> trame totale de 16 octets)
+Octets 3-4   : 0800      : commande Set/Stop Timer
+Octet 5      : 00        : valeur de demande d'arrêt du timer (00 = Stop)
+Octet 6      : 00        : secondes
+Octet 7      : 00        : minutes
+Octet 8      : 00        : heures
+Octet 9      : 00        : jour
+Octet 10     : 00        : mois
+Octet 11     : 00        : année
+Octets 12-13 : 0000      : valeur fixe
+Octet 14     : 09        : checksum -> 1 + somme des octets 3 à 13 inclus
+Octets 15-16 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE (IDENTIQUE HW 2.0 & HW 3.0)
+
+Valeur :
+0F 04 08 00 00 09 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 04        : longueur de la payload incluant la checksum
+Octets 3-4   : 0800      : commande Stop Timer
+Octet 5      : 00        : statut (00 = succès, 01 = échec)
+Octet 6      : 09        : checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+100 %
+
+============================================================
+FIN DU FICHIER 3
+SECTION TIMER (Version 0.2.3.4)
+============================================================

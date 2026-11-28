@@ -1,0 +1,298 @@
+SEM6000 - DOCUMENTATION PROTOCOLE
+SECTION 4 : SCHEDULER
+Version : 0.2.3.4 (Alignement Bi-Génération Hardware 2.0 / FW 1.24 & Hardware 3.0 / FW 1.30)
+
+Source : API.md & Rétro-ingénierie expérimentale (exp_13, exp_15, exp_22, exp_23)
+
+============================================================
+1. REQUEST SCHEDULER
+============================================================
+
+OBJECTIF
+
+Lire la liste des programmations horaires (Schedulers) enregistrées en mémoire Flash
+non volatile dans le SEM6000 (conservées après coupure secteur).
+
+Un scheduler correspond à une action planifiée ON/OFF du relais :
+(a) soit à une date et une heure uniques (Weekday Mask = 0x00)
+    exemple : basculer le relais à ON le 25/12/2026 à 22h01
+(b) soit de manière hebdomadaire récurrente à une heure donnée (Weekday Mask = 0x01..0x7F)
+    exemple : basculer le relais à OFF tous les lundis, mercredis et jeudis à 18h00
+
+CAPACITÉ MAXIMALE & NUMÉROTATION DES SLOTS (HARDWARE 2.0 vs HARDWARE 3.0 - exp_23)
+
+- Capacité matérielle stricte : 12 Schedulers maximum (sur HW 2.0 comme sur HW 3.0).
+  Toute tentative de créer un 13e scheduler est rejetée par la prise avec le statut 0x01.
+
+- Numérotation et ordre d'allocation des SLOT ID :
+  * Sur Hardware 2.0 / Firmware 1.24 :
+    Les Slot ID sont numérotés de 0x01 à 0x0C (1 à 12) et sont attribués par la prise en
+    ordre DÉCROISSANT (LIFO : 12, puis 11, 10, ..., jusqu'à 1).
+    Attention : lors d'une commande 0x1300 sur HW 2.0, si le Slot ID transmis existe déjà
+    dans la table, la prise modifie ce slot en place au lieu d'en créer un nouveau.
+  * Sur Hardware 3.0 / Firmware 1.30 :
+    Les Slot ID sont numérotés de 0x00 à 0x0B (0 à 11) et sont attribués par la prise en
+    ordre CROISSANT (FIFO : 0, puis 1, 2, ..., jusqu'à 11).
+  * Règle universelle bi-génération de création :
+    Toujours transmettre Mode = 0x00 et Slot ID = 0x00 lors de la création d'un scheduler.
+    C'est la prise qui assigne automatiquement le Slot ID libre (12..1 sur HW 2.0, 0..11 sur HW 3.0).
+
+PAGINATION HW 2.0 (3 PAGES x 56 OCTETS) vs TRAME MONOLITHIQUE HW 3.0 (152 OCTETS - exp_23)
+
+- Sur Hardware 2.0 / Firmware 1.24 (MTU = 23) :
+  La lecture est paginée sur 3 pages (Page 0, Page 1, Page 2) contenant au maximum 4 schedulers
+  par page. Une page pleine (4 schedulers) mesure 56 octets (reçus en 3 notifications BLE de
+  20 + 20 + 16 octets).
+- Sur Hardware 3.0 / Firmware 1.30 (MTU = 160) :
+  Aucune pagination ! Dès la requête de la Page 0, la prise renvoie l'intégralité des schedulers
+  enregistrés (jusqu'à 12 schedulers) en 1 seule notification BLE monolithique pouvant atteindre
+  152 octets (0F 94 14 00 0C [12 blocs x 12 octets = 144 octets] [Checksum] FF FF).
+  Règle d'implémentation : dès que le nombre de blocs de 12 octets extraits de la Page 0 atteint
+  le nombre total annoncé dans l'Octet 5, ne pas requêter les pages 1 et 2 (sur HW 3.0, demander
+  les pages 1 ou 2 renvoie à nouveau la même trame monolithique de 152 octets).
+
+CLEF DE TRI / UNICITÉ (OCTET 12 DE CHAQUE BLOC SCHEDULER)
+
+- Sur Hardware 2.0 / Firmware 1.24 :
+  La prise calcule et met à jour un octet non nul (SortKey / clef d'unicité) dans le 12e octet
+  de chaque bloc de 12 octets afin d'optimiser le tri et la détection de collisions d'horaires.
+  Remarque sur les collisions d'horaires (application constructeur) : deux règles programmées à
+  la même heure exacte (ex. Lundi 09h30 ON et Mardi 09h30 OFF) produisent la même clef d'unicité ;
+  un décalage d'une minute (09h30 et 09h31) permet d'éviter toute collision dans l'application.
+- Sur Hardware 3.0 / Firmware 1.30 :
+  Cet octet n'est plus utilisé et vaut invariablement 0x00 sur tous les slots.
+
+============================================================
+TRAME DE REQUÊTE (PAGE 0, 1 OU 2)
+============================================================
+
+Valeur (Requête Page 0) :
+0F 06 14 00 00 00 00 15 FF FF
+
+Valeur (Requête Page 1 - uniquement nécessaire sur HW 2.0 si Total > 4) :
+0F 06 14 00 01 00 00 16 FF FF
+
+Valeur (Requête Page 2 - uniquement nécessaire sur HW 2.0 si Total > 8) :
+0F 06 14 00 02 00 00 17 FF FF
+
+Décodage (sur Page 0) :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 06        : longueur de la payload incluant la checksum
+Octets 3-4   : 1400      : commande Request Scheduler
+Octet 5      : 00        : numéro de page (00 = Page 0, 01 = Page 1, 02 = Page 2)
+Octets 6-7   : 0000      : valeur fixe
+Octet 8      : 15        : checksum -> 1 + somme des octets 3 à 7 inclus
+Octets 9-10  : FFFF      : séquence de fin statique
+
+============================================================
+CAS N°1 : AUCUN SCHEDULER ENREGISTRÉ (IDENTIQUE HW 2.0 & HW 3.0)
+============================================================
+
+Notification (8 octets) :
+0F 04 14 00 00 15 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 04        : longueur de la payload incluant la checksum
+Octets 3-4   : 1400      : commande Request Scheduler
+Octet 5      : 00        : nombre TOTAL de schedulers enregistrés dans la prise (0)
+Octet 6      : 15        : checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF      : séquence de fin statique
+
+============================================================
+CAS N°2 : UN SEUL SCHEDULER
+============================================================
+
+Notification (20 octets) :
+0F 10 14 00 01 0C 01 01 00 13 08 09 0A 0B 00 00 4F AC FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 10        : longueur de la payload incluant la checksum (16 octets -> trame totale de 20 octets)
+Octets 3-4   : 1400      : commande Request Scheduler
+Octet 5      : 01        : nombre TOTAL de schedulers enregistrés dans la prise (actifs + inactifs)
+--- Bloc Scheduler #1 (12 octets : Octets 6 à 17) ---
+Octet 6      : 0C        : Slot ID (0x01..0x0C sur HW 2.0 ; 0x00..0x0B sur HW 3.0)
+Octet 7      : 01        : état du scheduler (00 = inactif, 01 = actif)
+Octet 8      : 01        : action programmée (00 = OFF, 01 = ON)
+Octet 9      : 00        : Weekday Mask :
+                           - 0x00 = exécution unique (One-shot) à la date et l'heure indiquées
+                           - Masque binaire hebdomadaire :
+                             0x01 = Dimanche
+                             0x02 = Lundi
+                             0x04 = Mardi
+                             0x08 = Mercredi
+                             0x10 = Jeudi
+                             0x20 = Vendredi
+                             0x40 = Samedi
+                             0x7F = Tous les jours
+Octet 10     : 13        : Année modulo 100 (19 -> 2019). Note : sur HW 3.0, vaut 00 si Weekday Mask != 0x00
+Octet 11     : 08        : Mois (8 -> Août). Note : sur HW 3.0, vaut 00 si Weekday Mask != 0x00
+Octet 12     : 09        : Jour (9). Note : sur HW 3.0, vaut 00 si Weekday Mask != 0x00
+Octet 13     : 0A        : Heure (10h)
+Octet 14     : 0B        : Minute (11m)
+Octets 15-16 : 0000      : valeur fixe
+Octet 17     : 4F        : Clef de tri / unicité (SortKey : calculée sur HW 2.0, toujours 00 sur HW 3.0)
+--- Fin de trame ---
+Octet 18     : AC        : checksum -> 1 + somme des octets 3 à 17 inclus
+Octets 19-20 : FFFF      : séquence de fin statique
+
+============================================================
+CAS N°3 : 12 SCHEDULERS SUR HARDWARE 2.0 (3 PAGES DE 56 OCTETS - CAPTURES RÉELLES exp_23)
+============================================================
+
+Sur Hardware 2.0 (MTU = 23), chaque page de 4 schedulers mesure 56 octets (Octet 2 = 0x34 = 52)
+et arrive fragmentée en 3 notifications BLE (20 + 20 + 16 octets) :
+
+Page 0 brute réassemblée (56 octets, Slots 1 à 4, Checksum 0x45 valide) :
+0F 34 14 00 0C 01 01 01 40 1A 0C 19 16 0C 00 00 B7 02 01 01 00 1A 0C 19 16 0B 00 00 76 03 01 01 20 1A 0C 19 16 0A 00 00 95 04 00 01 00 1A 0C 19 16 09 00 00 73 45 FF FF
+
+Page 1 brute réassemblée (56 octets, Slots 5 à 8, Checksum 0xA7 valide) :
+0F 34 14 00 0C 05 01 01 10 1A 0C 19 16 08 00 00 83 06 01 01 00 1A 0C 19 16 07 00 00 72 07 01 01 08 1A 0C 19 16 06 00 00 79 08 01 01 00 1A 0C 19 16 05 00 00 70 A7 FF FF
+
+Page 2 brute réassemblée (56 octets, Slots 9 à 12, Checksum 0x71 valide) :
+0F 34 14 00 0C 09 00 01 04 1A 0C 19 16 04 00 00 72 0A 01 01 00 1A 0C 19 16 03 00 00 6E 0B 01 01 02 1A 0C 19 16 02 00 00 6F 0C 01 01 00 1A 0C 19 16 01 00 00 6C 71 FF FF
+
+============================================================
+CAS N°4 : 12 SCHEDULERS SUR HARDWARE 3.0 (1 TRAME MONOLITHIQUE DE 152 OCTETS - CAPTURE RÉELLE exp_23)
+============================================================
+
+Sur Hardware 3.0 (MTU = 160), la requête Page 0 retourne les 12 schedulers (Slots 0 à 11) en
+un seul paquet BLE de 152 octets (Octet 2 = 0x94 = 148, Checksum 0xC7 valide) :
+
+Page 0 brute monolithique (152 octets) :
+0F 94 14 00 0C 00 01 01 00 1A 0C 19 16 01 00 00 00 01 01 01 02 00 00 00 16 02 00 00 00 02 01 01 00 1A 0C 19 16 03 00 00 00 03 00 01 04 00 00 00 16 04 00 00 00 04 01 01 00 1A 0C 19 16 05 00 00 00 05 01 01 08 00 00 00 16 06 00 00 00 06 01 01 00 1A 0C 19 16 07 00 00 00 07 01 01 10 00 00 00 16 08 00 00 00 08 00 01 00 1A 0C 19 16 09 00 00 00 09 01 01 20 00 00 00 16 0A 00 00 00 0A 01 01 00 1A 0C 19 16 0B 00 00 00 0B 01 01 40 00 00 00 16 0C 00 00 00 C7 FF FF
+
+Structure générale d'une réponse 0x1400 de N schedulers dans la trame :
+- Longueur totale = 8 + (12 x N) octets (Octet 2 = 4 + 12 x N)
+- Octet 5 = Nombre total de schedulers enregistrés dans la prise (0 à 12)
+- Octets 6 à (5 + 12 x N) = N blocs consécutifs de 12 octets chacun
+- Octet (6 + 12 x N) = Checksum -> 1 + somme des octets 3 à (5 + 12 x N) inclus
+- Octets (7 + 12 x N) et (8 + 12 x N) = FF FF
+
+
+============================================================
+2. SET SCHEDULER (CRÉATION & MODIFICATION)
+============================================================
+
+OBJECTIF
+
+Créer un nouveau scheduler (Mode = 0x00, Slot ID = 0x00) ou modifier en place un scheduler
+existant (Mode = 0x01, Slot ID = identifiant réel du slot).
+
+============================================================
+TRAME DE REQUÊTE (19 OCTETS)
+============================================================
+
+Valeur (Exemple : Modification ou Création) :
+0F 0F 13 00 01 00 01 01 01 13 07 0E 0E 1A 00 00 68 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0F        : longueur de la payload incluant la checksum (15 octets -> trame totale de 19 octets)
+Octets 3-4   : 1300      : commande Set Scheduler
+Octet 5      : 01        : Mode d'opération :
+                           - 00 = Ajouter / Créer un nouveau scheduler (utiliser avec Slot ID = 00)
+                           - 01 = Modifier un scheduler existant (utiliser avec le Slot ID réel du slot)
+                           - 02 = Supprimer un scheduler existant (voir section 3 ci-dessous)
+Octet 6      : 00        : Slot ID :
+                           - Passer 00 lors d'une création (Mode = 00) sur HW 2.0 comme sur HW 3.0
+                           - Passer le Slot ID réel (01..0C sur HW 2.0 ; 00..0B sur HW 3.0) lors d'une modification (Mode = 01)
+Octet 7      : 01        : État (00 = Inactif, 01 = Actif)
+Octet 8      : 01        : Action (00 = OFF, 01 = ON)
+Octet 9      : 01        : Weekday Mask (0x00 = date unique ; 0x01=Dim .. 0x40=Sam, 0x7F=Tous les jours)
+Octet 10     : 13        : Année modulo 100 (ex. 1A = 26 pour 2026)
+Octet 11     : 07        : Mois (01..0C)
+Octet 12     : 0E        : Jour (01..1F)
+Octet 13     : 0E        : Heure (00..17)
+Octet 14     : 1A        : Minute (00..3B)
+Octets 15-16 : 0000      : valeur fixe
+Octet 17     : 68        : checksum -> 1 + somme des octets 3 à 16 inclus
+Octets 18-19 : FFFF      : séquence de fin statique
+
+============================================================
+NOTIFICATION DE RÉPONSE (DIFFÉRENCE HW 2.0 vs HW 3.0 - exp_23)
+============================================================
+
+1. Sur Hardware 2.0 / Firmware 1.24 (10 octets) :
+
+Valeur (Succès) :
+0F 06 13 00 00 00 00 14 FF FF
+
+Valeur (Échec / Rejet du 13e scheduler lorsque la table de 12 est pleine) :
+0F 06 13 00 01 00 00 15 FF FF
+
+Décodage (HW 2.0) :
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 06        : longueur de la payload incluant la checksum (6 octets -> 10 octets au total)
+Octets 3-4   : 1300      : commande Set Scheduler
+Octet 5      : 00 ou 01  : résultat (00 = succès, 01 = échec / table pleine / collision)
+Octets 6-7   : 0000      : valeur fixe
+Octet 8      : 14 ou 15  : checksum -> 1 + somme des octets 3 à 7 inclus
+Octets 9-10  : FFFF      : séquence de fin statique
+
+2. Sur Hardware 3.0 / Firmware 1.30 (8 octets + Notification spontanée 0x1400 en rafale) :
+
+Valeur de l'acquittement (Succès, 8 octets) :
+0F 04 13 00 00 14 FF FF
+
+Valeur de l'acquittement (Échec / Rejet du 13e scheduler, 8 octets) :
+0F 04 13 00 01 15 FF FF
+
+Décodage (HW 3.0) :
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 04        : longueur de la payload incluant la checksum (4 octets -> 8 octets au total)
+Octets 3-4   : 1300      : commande Set Scheduler
+Octet 5      : 00 ou 01  : résultat (00 = succès, 01 = échec / table pleine)
+Octet 6      : 14 ou 15  : checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF      : séquence de fin statique
+
+ATTENTION — Rafale de double notification sur Hardware 3.0 (exp_23) :
+Sur Hardware 3.0, environ 1 milliseconde après l'envoi de l'acquittement 0x1300 (8 octets), la prise
+émet spontanément une seconde notification 0x1400 contenant la table complète des schedulers mise à jour.
+Le pilote BLE (Couche 1) doit verrouiller son tampon de réception sur l'opcode attendu (0x1300) dès
+réception de l'acquittement afin que la notification spontanée 0x1400 n'écrase pas l'acquittement 0x1300.
+
+
+============================================================
+3. DELETE SCHEDULER (SUPPRESSION D'UN SLOT)
+============================================================
+
+OBJECTIF
+
+Supprimer un scheduler existant identifié par son Slot ID (0x01..0x0C sur HW 2.0 ; 0x00..0x0B sur HW 3.0).
+
+TRAME DE REQUÊTE (19 OCTETS)
+
+Valeur (Exemple : Suppression du Slot ID 0x0C) :
+0F 0F 13 00 02 0C 00 00 00 00 00 00 00 00 00 00 22 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0F        : longueur de la payload incluant la checksum (15 octets -> trame totale de 19 octets)
+Octets 3-4   : 1300      : commande Set Scheduler
+Octet 5      : 02        : Mode = Supprimer un Scheduler
+Octet 6      : 0C        : Slot ID à supprimer (0x01..0x0C sur HW 2.0 ; 0x00..0x0B sur HW 3.0)
+Octets 7-16  : 00..00    : 10 octets à 0x00 (padding fixe)
+Octet 17     : 22        : checksum -> 1 + somme des octets 3 à 16 inclus
+Octets 18-19 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE
+
+- Sur Hardware 2.0 : 0F 06 13 00 00 00 00 14 FF FF (10 octets, Octet 5 = 00 : succès)
+- Sur Hardware 3.0 : 0F 04 13 00 00 14 FF FF (8 octets, Octet 5 = 00 : succès, suivi ~1 ms plus tard
+  d'une notification spontanée 0x1400 reflétant la table après suppression).
+
+NIVEAU DE CONFIANCE
+
+100 % (Validé par stress-test de 13 créations, modifications et suppression totale sur HW 2.0 et HW 3.0 dans exp_23).
+
+============================================================
+FIN DU FICHIER 4
+SECTION SCHEDULER (Version 0.2.3.4)
+============================================================

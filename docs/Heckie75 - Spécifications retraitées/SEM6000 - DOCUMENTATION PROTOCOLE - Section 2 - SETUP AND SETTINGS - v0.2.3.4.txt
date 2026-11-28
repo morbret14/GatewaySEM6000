@@ -1,0 +1,344 @@
+SEM6000 - DOCUMENTATION PROTOCOLE
+SECTION 2 : SETUP AND SETTINGS
+Version : 0.2.3.4 (Alignement Bi-Génération Hardware 2.0 / FW 1.24 & Hardware 3.0 / FW 1.30)
+
+Source : API.md & Rétro-ingénierie expérimentale (exp_02 à exp_13, exp_15, exp_16, exp_20 à exp_23)
+
+============================================================
+1. SYNCHRONIZE DATETIME (0x0100)
+============================================================
+
+OBJECTIF
+
+Synchroniser l'horloge temps réel interne (RTC) du SEM6000.
+
+COMPORTEMENT INTERNE & RÔLE CRITIQUE APRÈS COUPURE SECTEUR (exp_02 à exp_07, exp_20 à exp_23)
+
+1. Effet immédiat sur l'état d'amnésie post-coupure secteur :
+   - Sur Hardware 2.0 (FW 1.24) : Efface immédiatement la sentinelle Word0 == 0xFFFF sur la
+     caractéristique 0xFFF2 (qui reprend sa valeur nominale I_max en mA), démasque les historiques
+     journaliers (0x0B00) et mensuels (0x0C00) en Flash et relance le comptage des Wh.
+   - Sur Hardware 3.0 (FW 1.30) : Débloque l'horloge RTC interne (qui reste figée au 01/01/2020
+     à 00:00:00 après une coupure secteur), démasque le jour courant J[29] et le mois courant M[11],
+     et relance le comptage de H[23] et totalKwhWh.
+
+2. Cinématique des rotations d'historiques & Règle du « Havre de Paix » (HH:30:00) :
+   - L'envoi de 0x0100 ne déclenche aucune rotation immédiate des historiques.
+   - Les rotations d'historiques sont déclenchées exclusivement par le franchissement naturel de
+     l'heure pile XX:59:59 -> (XX+1):00:00 (et 23:59:59 -> 00:00:00 pour la rotation journalière).
+   - ATTENTION : Reculer l'horloge avant une heure pile déjà franchie fait rejouer le passage
+     HH:00:00 et provoque une double rotation destructive de l'historique 24h (0x0A00). En régime
+     nominal, effectuer les recalages NTP au milieu de l'heure (HH:30:00) dans un référentiel
+     horaire monotone sans bascule d'heure été/hiver (UTC ou UTC+1 fixe).
+
+TRAME DE REQUÊTE (16 OCTETS)
+
+Valeur (Exemple : 22/06/2019 à 10:24:41) :
+0F 0C 01 00 29 18 0A 16 06 07 E3 00 00 53 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0C        : longueur de la payload incluant la checksum (12 octets -> 16 octets au total)
+Octets 3-4   : 0100      : commande Synchronize Datetime
+Octet 5      : 29        : secondes (0x29 = 41 s)
+Octet 6      : 18        : minutes (0x18 = 24 min)
+Octet 7      : 0A        : heures (0x0A = 10 h)
+Octet 8      : 16        : jour du mois (0x16 = 22)
+Octet 9      : 06        : mois (0x06 = Juin)
+Octets 10-11 : 07E3      : année complète sur 16 bits Big-Endian (0x07E3 = 2019 ; 0x07EA = 2026)
+Octets 12-13 : 0000      : padding fixe
+Octet 14     : 53        : checksum -> 1 + somme des octets 3 à 13 inclus
+Octets 15-16 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE (8 OCTETS - IDENTIQUE HW 2.0 & HW 3.0)
+
+Valeur :
+0F 04 01 00 00 02 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 04        : longueur de la payload incluant la checksum
+Octets 3-4   : 0100      : commande Synchronize Datetime
+Octet 5      : 00        : résultat (00 = succès, 01 = échec)
+Octet 6      : 02        : checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+100 %
+
+
+============================================================
+2. REQUEST SETTINGS (0x1000)
+============================================================
+
+TRAME DE REQUÊTE (9 OCTETS)
+
+Valeur :
+0F 05 10 00 00 00 11 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 05        : longueur de la payload incluant la checksum
+Octets 3-4   : 1000      : commande Request Settings
+Octets 5-6   : 0000      : valeur statique
+Octet 7      : 11        : checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 8-9   : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE (18 OCTETS SUR HW 2.0 vs 20 OCTETS AVEC PADDING 00 00 SUR HW 3.0 - exp_16, exp_23)
+
+Valeur Exemple 1 (Configuration d'usine sur Théoule HW 2.0 / FW 1.24 - 18 octets) :
+0F 0E 10 00 00 C8 64 00 00 00 00 01 00 0E 60 AC FF FF
+
+Valeur Exemple 2 (Tarif HP/HC actif 22h00->06h00 sur HW 2.0 - 18 octets) :
+0F 0E 10 00 01 1B 12 05 28 01 68 01 00 04 DE B8 FF FF
+
+Valeur Exemple 3 (Capture réelle sur Vélo HW 3.0 / FW 1.30 - 20 octets avec padding 00 00 final) :
+0F 0E 10 00 01 12 0D 05 28 01 68 01 00 0E 60 36 FF FF 00 00
+
+Décodage (sur Exemple 1) :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0E        : longueur logique de la payload incluant la checksum (14 octets -> longueur logique L = 14 + 4 = 18 octets)
+Octets 3-4   : 1000      : commande Request Settings
+Octet 5      : 00        : Reduced Mode Active / Mode Heures Creuses (00 = désactivé, 01 = activé)
+Octet 6      : C8        : Tarif Normal (HP) en centimes/kWh (uint8_t : 0xC8 = 200 -> 2,00 EUR/kWh ; 0x12 = 18 -> 0,18 EUR/kWh)
+Octet 7      : 64        : Tarif Réduit (HC) en centimes/kWh (uint8_t : 0x64 = 100 -> 1,00 EUR/kWh ; 0x0D = 13 -> 0,13 EUR/kWh)
+Octets 8-9   : 0000      : Heure de début Heures Creuses en minutes écoulées depuis 00h00 (uint16_t Big-Endian : ex. 0x0528 = 1320 min = 22h00)
+Octets 10-11 : 0000      : Heure de fin Heures Creuses en minutes écoulées depuis 00h00 (uint16_t Big-Endian : ex. 0x0168 = 360 min = 06h00)
+Octet 12     : 01        : État de l'anneau LED (00 = OFF, 01 = ON)
+Octet 13     : 00        : Réservé - toujours 0x00
+Octets 14-15 : 0E60      : Seuil de puissance maximale (Overload Power P_max) en Watts (uint16_t Big-Endian : 0x0E60 = 3680 W)
+Octet 16     : AC        : checksum -> 1 + somme des octets 3 à 15 inclus
+Octets 17-18 : FFFF      : séquence de fin statique
+[Octets 19-20: 0000]     : présents UNIQUEMENT sur Hardware 3.0 (2 octets de bourrage après FFFF dans le paquet GATT de 20 octets,
+                           automatiquement ignorés en utilisant la longueur logique L = Octet[2] + 4 = 18).
+
+NIVEAU DE CONFIANCE
+
+100 % (Toutes les unités et conversions ont été vérifiées expérimentalement dans exp_10, exp_12, exp_13, exp_16 et exp_23).
+
+
+============================================================
+3. SET LED RING (0x0F0005)
+============================================================
+
+TRAME DE REQUÊTE (13 OCTETS)
+
+Valeur (Activer l'anneau LED) :
+0F 09 0F 00 05 01 00 00 00 00 16 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 09        : longueur de la payload incluant la checksum (9 octets -> 13 octets au total)
+Octets 3-5   : 0F0005    : commande LED Ring (famille 0x0F00, sous-commande 0x05)
+Octet 6      : 01        : état LED (00 = OFF, 01 = ON)
+Octets 7-10  : 00000000  : padding fixe (4 octets)
+Octet 11     : 16        : checksum -> 1 + somme des octets 3 à 10 inclus
+Octets 12-13 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE (POLYMORPHISME HW 2.0 9 OCTETS vs HW 3.0 8 OCTETS - exp_16, exp_23)
+
+1. Sur Hardware 2.0 / Firmware 1.24 (9 octets — Statut en Octet 6 / index C 5) :
+Valeur :
+0F 05 0F 00 05 00 15 FF FF
+
+Décodage (HW 2.0) :
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 05        : longueur de la payload incluant la checksum (5 octets -> 9 octets au total)
+Octets 3-4   : 0F00      : famille de commandes 0x0F00
+Octet 5      : 05        : écho de la sous-commande LED Ring (05)
+Octet 6      : 00        : résultat (00 = succès, 01 = échec)
+Octet 7      : 15        : checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 8-9   : FFFF      : séquence de fin statique
+
+2. Sur Hardware 3.0 / Firmware 1.30 (8 octets — Statut en Octet 5 / index C 4) :
+Valeur :
+0F 04 0F 00 00 10 FF FF
+
+Décodage (HW 3.0) :
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 04        : longueur de la payload incluant la checksum (4 octets -> 8 octets au total)
+Octets 3-4   : 0F00      : famille de commandes 0x0F00 (sans écho de sous-commande)
+Octet 5      : 00        : résultat (00 = succès, 01 = échec)
+Octet 6      : 10        : checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+100 %
+
+
+============================================================
+4. SET OVERLOAD POWER (0x0500)
+============================================================
+
+TRAME DE REQUÊTE (11 OCTETS)
+
+Valeur (Seuil maximal d'usine 3680 W = 0x0E60) :
+0F 07 05 00 0E 60 00 00 74 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 07        : longueur de la payload incluant la checksum (7 octets -> 11 octets au total)
+Octets 3-4   : 0500      : commande Set Overload Power
+Octets 5-6   : 0E60      : puissance maximale admissible P_max en Watts (uint16_t Big-Endian : 0x0E60 = 3680 W)
+Octets 7-8   : 0000      : padding 0x0000
+Octet 9      : 74        : checksum -> 1 + somme des octets 3 à 8 inclus
+Octets 10-11 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE (8 OCTETS - IDENTIQUE HW 2.0 & HW 3.0)
+
+Valeur :
+0F 04 05 00 00 06 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 04        : longueur de la payload incluant la checksum
+Octets 3-4   : 0500      : commande Set Overload
+Octet 5      : 00        : résultat (00 = succès, 01 = échec)
+Octet 6      : 06        : checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF      : séquence de fin statique
+
+CINÉMATIQUE DE DISJONCTION MATÉRIELLE (exp_06 & exp_12)
+
+- La prise calcule en permanence son seuil de courant maximal I_max (mA) = (P_max (W) / U (V)) * 1000
+  (exposé en temps réel dans Word0 de la caractéristique 0xFFF2 sur Hardware 2.0).
+- Dès que le courant mesuré dépasse I_max pendant ~1,5 à 2 secondes (temporisation thermique interne),
+  le relais s'ouvre mécaniquement (passage à OFF) sans perte de l'horloge RTC.
+
+NIVEAU DE CONFIANCE
+
+100 %
+
+
+============================================================
+5. SET PRICES (0x0F0004)
+============================================================
+
+TRAME DE REQUÊTE (13 OCTETS)
+
+Valeur (Exemple : Tarif Normal = 123 centimes/kWh (0x7B), Tarif Réduit = 45 centimes/kWh (0x2D)) :
+0F 09 0F 00 04 7B 2D 00 00 00 BC FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 09        : longueur de la payload incluant la checksum (9 octets -> 13 octets au total)
+Octets 3-5   : 0F0004    : commande Set Prices (famille 0x0F00, sous-commande 0x04)
+Octet 6      : 7B        : tarif normal (HP) en centimes/kWh (uint8_t : 0x7B = 123 -> 1,23 EUR/kWh)
+Octet 7      : 2D        : tarif réduit (HC) en centimes/kWh (uint8_t : 0x2D = 45  -> 0,45 EUR/kWh)
+Octets 8-10  : 000000    : padding fixe (3 octets)
+Octet 11     : BC        : checksum -> 1 + somme des octets 3 à 10 inclus
+Octets 12-13 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE (POLYMORPHISME HW 2.0 vs HW 3.0)
+
+- Sur Hardware 2.0 (9 octets, Statut en Octet 6) :
+  0F 05 0F 00 04 00 14 FF FF
+- Sur Hardware 3.0 (8 octets, Statut en Octet 5) :
+  0F 04 0F 00 00 10 FF FF
+
+NIVEAU DE CONFIANCE
+
+100 % (Validé par exp_13).
+
+
+============================================================
+6. SET REDUCED PERIOD (0x0F0001 — PLAGE HEURES CREUSES)
+============================================================
+
+ENCODAGE EN MINUTES & BORNE D'EXCLUSION STRICTE (exp_10)
+
+- Les horaires de début et de fin du créneau Heures Creuses sont encodés sous forme d'un
+  nombre entier de minutes écoulées depuis 00h00 sur 16 bits Big-Endian :
+  Minutes = (Heure * 60) + Minute = (Octet_MSB << 8) | Octet_LSB
+- Le microprogramme de la prise traite l'heure de fin T_fin comme une BORNE D'EXCLUSION STRICTE
+  (intervalle semi-ouvert [T_début, T_fin[), et l'application mobile affiche à l'écran (T_fin - 1 minute) :
+  * Pour un créneau Heures Creuses de 22h00 à 06h00 (affiché "22:00 -> 05:59" dans l'app mobile) :
+    - T_début = 22 * 60 = 1320 minutes = 0x0528
+    - T_fin   = 06 * 60 =  360 minutes = 0x0168
+- Attention (Bug UI de l'application mobile élucidé dans exp_10) : ne jamais programmer T_début == T_fin
+  avec Octet 6 = 01 (actif), car une amplitude nulle bloque le curseur graphique de l'application mobile.
+
+TRAME DE REQUÊTE (13 OCTETS)
+
+Valeur Exemple 1 (API.md : Actif de 01h23 (0x0053 = 83 min) à 04h56 (0x0128 = 296 min)) :
+0F 09 0F 00 01 01 00 53 01 28 8E FF FF
+
+Valeur Exemple 2 (Créneau standard français 22h00 (0x0528) -> 06h00 (0x0168) - exp_10) :
+0F 09 0F 00 01 01 05 28 01 68 A6 FF FF
+
+Décodage (sur Exemple 1) :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 09        : longueur de la payload incluant la checksum (9 octets -> 13 octets au total)
+Octets 3-5   : 0F0001    : commande Set Reduced Period (famille 0x0F00, sous-commande 0x01)
+Octet 6      : 01        : activation (00 = OFF, 01 = ON)
+Octets 7-8   : 0053      : heure de début en minutes depuis 00h00 (uint16_t Big-Endian : 83 min = 01h23)
+Octets 9-10  : 0128      : heure de fin (borne d'exclusion) en minutes depuis 00h00 (uint16_t Big-Endian : 296 min = 04h56)
+Octet 11     : 8E        : checksum -> 1 + somme des octets 3 à 10 inclus
+Octets 12-13 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE (POLYMORPHISME HW 2.0 vs HW 3.0)
+
+- Sur Hardware 2.0 (9 octets, Statut en Octet 6) :
+  0F 05 0F 00 01 00 11 FF FF
+- Sur Hardware 3.0 (8 octets, Statut en Octet 5) :
+  0F 04 0F 00 00 10 FF FF
+
+NIVEAU DE CONFIANCE
+
+100 % (Validé expérimentalement dans exp_10 et exp_13).
+
+
+============================================================
+7. SWITCH ON / OFF (0x0300 — COMMANDE RELAIS)
+============================================================
+
+TRAME DE REQUÊTE (10 OCTETS)
+
+Valeur (Basculer sur OFF) :
+0F 06 03 00 00 00 00 04 FF FF
+
+Valeur (Basculer sur ON) :
+0F 06 03 00 01 00 00 05 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 06        : longueur de la payload incluant la checksum (6 octets -> 10 octets au total)
+Octets 3-4   : 0300      : commande Switch Relay (0x0300)
+Octet 5      : 00 ou 01  : état demandé (00 = OFF, 01 = ON)
+Octets 6-7   : 0000      : padding fixe 0x0000
+Octet 8      : 04 ou 05  : checksum -> 1 + somme des octets 3 à 7 inclus
+Octets 9-10  : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE (8 OCTETS - IDENTIQUE HW 2.0 & HW 3.0)
+
+Valeur :
+0F 04 03 00 00 04 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 04        : longueur de la payload incluant la checksum
+Octets 3-4   : 0300      : commande Switch Relay (0x0300)
+Octet 5      : 00        : résultat (00 = succès, 01 = échec)
+Octet 6      : 04        : checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+100 %
+
+============================================================
+FIN DU FICHIER 2
+SETUP AND SETTINGS (Version 0.2.3.4)
+============================================================

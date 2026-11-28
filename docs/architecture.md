@@ -163,19 +163,18 @@ Les expérimentations menées sur banc de test réel (`experiments/exp_02` à `e
 * **Notification de réponse aux commandes 3 octets (`CMD_SET_3B`) :**
   Pour les commandes `0x0F00` comportant une sous-commande (`0x01` période HC, `0x04` prix, `0x05` LED), la notification de réponse retournée sur `0xFFF4` est `0F 05 0F 00 [SubCmd] [Status] [Checksum] FF FF`. L'octet de statut d'exécution (`0x00` = Succès) réside à l'index 5 (`m_rxBuffer[5]`), l'index 4 contenant l'écho de la sous-commande.
 
-#### 9. Cinématique du Timer & Durée d'Armement Statique (`0x0900`, `exp_11`)
-* **Nature des octets `[B11..B13]` :**
-  Dans la trame de réponse `0x0900` (Timer Status), les octets 11 à 13 (`m_rxBuffer[11..13]`, codés en `Heures, Minutes, Secondes`) représentent formellement la **durée d'exécution initiale calculée par le SEM6000 au moment du SET**.
-  * Ce sont des valeurs **strictement statiques** (preset de consigne) qui ne décroissent pas au fil du temps (démontré par `exp_11` : reste figé à `[0x00 0x00 0x3C]` = 60s tout au long de la minute d'attente).
-  * La prise ne maintient aucun compte à rebours décrémental en mémoire vive dans ce registre.
-* **Calcul du temps restant côté client / passerelle :**
-  Pour afficher un compte à rebours dynamique en temps réel, l'application cliente ou la passerelle doit calculer la différence entre la date cible absolue (`Octets 5 à 10 : Seconde, Minute, Heure, Jour, Mois, Année`) et l'heure courante :
-  $$\Delta t_{\text{restant}} = T_{\text{cible}} - T_{\text{courant}}$$
+#### 9. Cinématique du Timer, Codage 24 bits en Secondes de `presetSeconds` & Sentinelle RAM Post-Coupure (`0x0900`, `exp_11`, `exp_20`, `exp_21`, `exp_22`)
+* **Codage universel des octets `[B11..B13]` (Entier 24 bits Big-Endian en SECONDES) :**
+  Contrairement à une hypothèse initiale issue d'un test sur 60 secondes (`[0x00, 0x00, 0x3C]`), les octets 11 à 13 (`m_rxBuffer[11..13]`) de la trame `0x0900` (`getTimerStatus`) ne sont **pas** codés en `[Heures, Minutes, Secondes]`, mais forment sur **`HW 2.0` comme sur `HW 3.0`** un **entier non signé 24 bits Big-Endian exprimé directement en SECONDES** ($0 \le \Delta t < 2^{24} = 16\,777\,216\text{ s} \approx 194,18\text{ jours}$) :
+  $$\texttt{presetSeconds} = (\texttt{m\_rxBuffer[11]} \ll 16) \mid (\texttt{m\_rxBuffer[12]} \ll 8) \mid \texttt{m\_rxBuffer[13]}$$
+  * *Preuves expérimentales :* `0x00003C` = $60\text{ s}$ (`exp_11`), `0x000E0E` = $3\,598\text{ s}$ (`exp_15`), `0x007E90` = $32\,400\text{ s} = 9\text{h}00\text{m}00\text{s}$ et `0x008CA0` = $36\,000\text{ s} = 10\text{h}00\text{m}00\text{s}$ (`exp_20`), `0x02A2FF` = $172\,799\text{ s} = 48\text{h} - 1\text{s}$ (`exp_22`).
+* **Différence de comportement `HW 2.0` vs `HW 3.0` sur `[B11..B13]` :**
+  * **Sur `Hardware 2.0 / FW 1.24` :** Valeur **statique** égale à la durée initiale $\Delta t = T_{\text{cible}} - T_{\text{interne}}$ calculée au moment de l'envoi de `setTimerAbs` (`0x0800`).
+  * **Sur `Hardware 3.0 / FW 1.30` :** Tant que le timer est actif (`m_rxBuffer[4] != 0x00`), la prise retourne l'écart $\Delta t = (T_{\text{cible}} - T_{\text{interne}}) \pmod{2^{24}}$ à la seconde près. Dès que le timer est désarmé (`stopTimer()`, `m_rxBuffer[4] == 0x00`), `[B11..B13]` retombe à `0x000000` tandis que les octets `[B5..B10]` conservent en RAM l'écho de la dernière date cible programmée (`sec, min, hour, day, month, year`).
 * **Bascule à l'échéance et fin de vie du Timer :**
-  * Dès que $T_{\text{courant}} = T_{\text{cible}}$, le relais matériel commute immédiatement vers l'action programmée (ex: `ON`).
-  * De manière atomique, l'octet d'action `m_rxBuffer[4]` repasse immédiatement de `0x01` (ou `0x02`) à **`0x00` (INACTIF)**.
-  * La date cible et la durée statique initiale restent conservées dans le tampon comme historique de la dernière consigne exécutée.
-  * **Test d'activité univoque :** La condition `m_rxBuffer[4] != 0x00` certifie à 100% si un timer est en cours d'exécution.
+  * Dès que $T_{\text{courant}} = T_{\text{cible}}$, le relais matériel commute immédiatement vers l'action programmée (ex: `ON`), et l'octet d'action `m_rxBuffer[4]` repasse à **`0x00` (INACTIF)**.
+  * **Volatilité en RAM :** Contrairement aux plannings (`0x1400`) et au mode aléatoire (`0x1600`) stockés en Flash, un Timer unitaire actif (`0x0800`) réside uniquement en **RAM volatile** et est effacé lors d'une coupure secteur (`exp_22`).
+  * **Signature RAM de coupure secteur sur `HW 3.0` (`00 00 00 00 00 30`) :** Au démarrage à froid après une coupure secteur, avant tout armement de timer, les octets `[B5..B10]` de `0x0900` valent invariablement **`00 00 00 00 00 30`** (`targetDay == 0x00`, `targetMonth == 0x00`, `targetYear == 0x30`), offrant un détecteur de coupure secteur en 1 seule requête `GET` sur `HW 3.0` (cf. Section 2.8 §6).
 
 #### 10. Invariance des Octets 13-14 de Télémétrie (`0x0400`) & Surveillance Tactique de Surcharge par `FFF2` (`exp_12`)
 * **Protocole expérimental formel (`exp_12`) :**
@@ -225,6 +224,30 @@ L'expérimentation différentielle exhaustive menée sur banc réel (`exp_13`) a
     * **Historiques :** Tous effacés à $0\text{ Wh}$.
     * **Code PIN :** Réinitialisé au code d'usine `0000` (`(uint32_t)0x00000000`).
 
+#### 12. Architecture Bi-Génération des Plannings (`0x1300` / `0x1400`) & du Mode Aléatoire (`0x1500` / `0x1600`) (`exp_23`)
+Le stress-test comparatif des plannings (création de 13 schedulers $\rightarrow$ 12 acceptés et 13ᵉ rejeté, modification en place de 2 slots, lecture multi-pages et purge complète) et du mode aléatoire sur *Théoule* (`HW 2.0 / FW 1.24`) et *Vélo* (`HW 3.0 / FW 1.30`) a établi les règles exactes suivantes :
+
+* **Capacité maximale & Rejet du 13ᵉ planning (`0x1300`) :**
+  * Les deux générations acceptent un maximum strict de **12 plannings** simultanés en mémoire Flash.
+  * Toute tentative de créer un 13ᵉ planning est rejetée par la prise avec un acquittement négatif (`RX[4] = 0x01` $\rightarrow$ `SEM_ERR_RESPONSE_REJECTED`) sans altérer les 12 plannings existants.
+* **Allocation des `SlotId` et règle universelle de création (`slotId = 0x00`) :**
+  * **Sur `Hardware 2.0 / FW 1.24` :** Les `SlotId` sont numérotés de **`1` à `12` (`0x01..0x0C`)** et alloués en **ordre décroissant (LIFO : `12`, puis `11`, ..., jusqu'à `1`)**. Lors d'un appel `0x1300`, si l'octet `slotId` (`frame[5]`) correspond à un `SlotId` déjà existant dans la table, le `HW 2.0` **modifie ce slot en place** au lieu d'en créer un nouveau. Pour créer un nouveau slot sur `HW 2.0`, il est donc impératif de transmettre **`slotId = 0x00`** (avec `mode = 0x00`).
+  * **Sur `Hardware 3.0 / FW 1.30` :** Les `SlotId` sont numérotés de **`0` à `11` (`0x00..0x0B`)** et alloués en **ordre croissant (FIFO : `0`, puis `1`, ..., jusqu'à `11`)**. L'octet `mode` (`frame[4]`) gouverne strictement l'opération : `0x00` crée un nouveau slot (quel que soit `slotId`), `0x01` modifie en place le `slotId` indiqué, et `0x02` supprime le `slotId` indiqué.
+  * **Convention universelle bi-génération (`SEM6000Device::setScheduler`) :** Toujours passer **`mode = 0x00` (`SCHED_ONCE`) et `slotId = 0x00`** pour créer un planning (unitaire si `dayMask == 0x00`, hebdomadaire si `dayMask != 0x00`), et **`mode = 0x01` (`SCHED_REPEAT_WEEKLY`) avec le `slotId` réel** lu via `requestAllSchedulers()` pour modifier un planning existant.
+* **Différence de représentation des plannings hebdomadaires et de la clef de tri (`SortKey`) dans `0x1400` :**
+  * **Sur `Hardware 2.0` :** Conserve la date initiale (`year, month, day`) même lorsque `dayMask != 0x00`, et calcule un octet `SortKey` non nul (`block[11]`, recalculé à chaque modification).
+  * **Sur `Hardware 3.0` :** Dès que `dayMask != 0x00` (planning hebdomadaire), le firmware force les octets de date à `00/00/00` (`2000/00/00`) et maintient `SortKey = 0x00` sur tous les slots.
+* **Pagination 3 pages $\times$ 56 octets (`HW 2.0`) vs Trame monolithique 152 octets (`HW 3.0`) sur `0x1400` :**
+  * L'octet `m_rxBuffer[4]` de `0x1400` indique toujours le **nombre total de plannings enregistrés dans la prise** (`0` à `12`), et non le nombre de slots dans la page courante.
+  * **Sur `Hardware 2.0` (`MTU = 23`) :** La lecture est paginée par **4 slots maximum par page** (`56 octets` par page pleine : `0F 34 14 00 [Total] [4 x 12 o] [CS] FF FF`, assemblés en 3 fragments BLE) sur les pages `0`, `1` et `2`.
+  * **Sur `Hardware 3.0` (`MTU = 160`) :** **Aucune pagination !** Dès la requête de la `Page 0`, la prise retourne **l'intégralité des plannings enregistrés (jusqu'à 12 slots) en 1 seule trame monolithique de 152 octets** (`0F 94 14 00 0C [12 x 12 o = 144 o] [CS] FF FF`, avec **`CS_Valid = OUI`** !). `requestAllSchedulers()` s'arrête donc dès que `list.size() >= totalSchedulers`.
+* **Rafale de double notification `0x1300` + `0x1400` sur `HW 3.0` :**
+  * Sur `HW 2.0`, une écriture `0x1300` renvoie un acquittement de **10 octets** (`0F 06 13 00 [Status] 00 00 [CS] FF FF`).
+  * Sur `HW 3.0`, une écriture `0x1300` renvoie un acquittement de **8 octets** (`0F 04 13 00 [Status] [CS] FF FF`) suivi **~1 ms plus tard d'une notification spontanée `0x1400`** contenant la table complète des plannings mise à jour. Le verrouillage de `m_rxBuffer` par `m_expectedCmd` et `m_rxReady` dans `SEM6000Device::handleNotification()` garantit que cette notification spontanée `0x1400` n'écrase jamais l'acquittement `0x1300`.
+* **Mode Aléatoire (`0x1500` / `0x1600`) :**
+  * Format de requête et de réponse (15 octets, `CS_Valid = OUI`) **100 % identique** entre `HW 2.0` et `HW 3.0`.
+  * Valeur d'usine au repos (`active = 0x00`) : `00:00 -> 00:00 (mask = 0x00)` sur `HW 2.0`, contre `20:00 -> 08:00 (mask = 0xFF)` préconfiguré par défaut sur `HW 3.0`.
+
 ---
 
 ### 2.6 Stratégie Maîtresse de Synchronisation d'Horloge (Plus précise que le constructeur)
@@ -252,9 +275,9 @@ Pour surpasser le constructeur et garantir une précision temporelle absolue san
 #### Règle 4 : Sonde Temporelle Furtive — Lecture Indirecte d'Horloge via le Registre Timer (Couche 2)
 Bien que le microprogramme du SEM6000 ne dispose d'aucune commande native de lecture d'horloge (`getDateTime`), la cinématique du Timer (`0x0800` / `0x0900`, cf. Section 2.5 §9) fournit un mécanisme détourné pour **mesurer l'horloge interne matérielle à la seconde près** sans modifier l'heure de la prise :
 * **Principe arithmétique :**
-  Lors d'un armement de timer (`setTimerAbs`), la prise calcule la différence entre la date cible absolue $T_{\text{cible}}$ fournie et son horloge interne instantanée $T_{\text{interne}}$ :
+  Lors d'un armement de timer (`setTimerAbs`), la prise calcule la différence en secondes entre la date cible absolue $T_{\text{cible}}$ fournie et son horloge interne instantanée $T_{\text{interne}}$ :
   $$\Delta t = T_{\text{cible}} - T_{\text{interne}}$$
-  Cette durée statique $\Delta t$ (`[B11..B13] = Heures, Minutes, Secondes`) est immédiatement lisible via `getTimerStatus()` (`0x0900`). On en déduit directement :
+  Cette durée $\Delta t$, encodée sous forme d'**entier 24 bits Big-Endian en secondes** dans `[B11..B13]` (`(B11 << 16) | (B12 << 8) | B13`), est immédiatement lisible via `getTimerStatus()` (`0x0900`). On en déduit directement la date et l'heure de la RTC interne à la seconde près (`deltaDays = deltaSec24 / 86400`, `secOfDay = secCible - (deltaSec24 % 86400)`) :
   $$T_{\text{interne}} = T_{\text{cible}} - \Delta t$$
 * **Cinématique de la sonde furtive (< 150 ms) :**
   1. **Politesse d'accès :** Interrogation préalable de `getTimerStatus()`. Si `action != 0x00`, un timer physique utilisateur est en cours (ex. programmé via l'app mobile) $\rightarrow$ la passerelle n'y touche pas.
@@ -334,9 +357,9 @@ Toutes les positions ci-dessous sont exprimées en **index 0 (C-style)** dans le
 
 ---
 
-### 2.8 Dualité Matérielle du Parc : `Hardware 2.0 (FW 1.24)` vs `Hardware 3.0 (FW 1.30)` (`exp_14` à `exp_17`)
+### 2.8 Dualité Matérielle du Parc : `Hardware 2.0 (FW 1.24)` vs `Hardware 3.0 (FW 1.30)` (`exp_14` à `exp_22`)
 
-Les campagnes de qualification radio et protocolaires (`exp_14`, `exp_15`, `exp_16`, `exp_17`) sur le parc réel de 10 prises ont révélé la coexistence de **deux générations matérielles et logicielles distinctes** sous la même référence commerciale Voltcraft SEM6000 :
+Les campagnes de qualification radio, protocolaires et temporelles (`exp_14` à `exp_22`) sur le parc réel de 10 prises ont révélé la coexistence de **deux générations matérielles et logicielles distinctes** sous la même référence commerciale Voltcraft SEM6000 :
 * **Génération `HW 2.0 / FW 1.24` (7 prises du parc) :** Préfixes MAC `b0:b1:13:...` et `94:a9:a8:...` (*Bureau, Chambre Cédric, Salon, Smart EQ, Congélateur cuisine, Lave Vaisselle, Théoule*).
 * **Génération `HW 3.0 / FW 1.30` (3 prises du parc) :** Préfixe MAC `a3:00:00:...` (*Lave linge, Sèche linge, Vélo / Wattmètre mobile*).
 
@@ -353,52 +376,119 @@ Le dump intégral comparatif des tables GATT entre *Chambre Cédric* (`HW 2.0`) 
 
 | Propriété / Service GATT | **`Hardware 2.0 / Firmware 1.24`** | **`Hardware 3.0 / Firmware 1.30`** | Impact Technique Passerelle |
 | :--- | :--- | :--- | :--- |
-| **MTU GATT négocié** | **`23 octets`** (fixe $\rightarrow$ fragmente toute trame $> 20\text{ o}$) | **`160 octets`** (trames jusqu'à 157 o reçues d'un seul bloc !) | Zéro fragmentation BLE sur `HW 3.0` |
+| **MTU GATT négocié** | **`23 octets`** (fixe $\rightarrow$ fragmente toute trame $> 20\text{ o}$ en 3 ou 7 paquets) | **`160 octets`** (trames de 55 et 127 o reçues en **1 seul paquet BLE atomique** !) | Zéro fragmentation multi-paquets sur `HW 3.0` |
 | **Paramètres GAP préférés (`0x2A04`)** | `50 00 A0 00 00 00 E8 03` (Intervalle **`100..200 ms`**, timeout `10 s`) | `08 00 0A 00 00 00 58 02` (Intervalle **`10..12,5 ms`**, timeout `6 s`) | Échanges GATT **~10x plus rapides** une fois connecté sur `HW 3.0` |
 | **Nom GATT (`0x2A00`)** | `READ` seul | `READ \| WRITE` (supporte l'UTF-8, ex. `"Wattmètre mobile"`) | Compatible `getDeviceNameGATT()` |
 | **Service `0x180A` (*Device Info*)** | **Présent** (9 caractéristiques `0x2A23..0x2A50`) | **Supprimé** | Sans impact (non utilisé) |
 | **Caractéristique `0xFFF1` (Versions)** | `56 4F 4C 43 46 54 ... 01 18 02 00 13` (`FW 1.24`, `HW 2.0`, Byte16 `0x13`) | `56 4F 4C 43 46 54 ... 01 1E 03 00 0C` (`FW 1.30`, `HW 3.0`, Byte16 `0x0C`) | Permet l'identification formelle post-connexion |
 | **Service `0xFFF0` (Voltcraft)** | **6 caractéristiques** : `0xFFF1`, **`0xFFF2`**, `0xFFF3`, `0xFFF4`, `0xFFF5`, `0xFFF6` | **3 caractéristiques** : `0xFFF1`, `0xFFF3`, `0xFFF4` (**`0xFFF2`, `0xFFF5`, `0xFFF6` supprimées !**) | **`m_pCharFFF2 == nullptr` sur `HW 3.0`** (`readRawFFF2()` renvoie `false`) |
 
-#### 3. Différences Protocolaires sur `0xFFF3 / 0xFFF4` (`exp_15` & `exp_16`)
+#### 3. Différences Protocolaires sur `0xFFF3 / 0xFFF4` (`exp_15`, `exp_16`, `exp_18` à `exp_21`)
 1. **Bourrage (Padding `00 00`) sur `requestSettings` (`0x1000`) :**
    * Sur `HW 3.0`, la réponse à `0x1000` est envoyée dans un paquet GATT de **20 octets** contenant 2 octets `00 00` après le marqueur `FF FF` :
      `0F 0E 10 00 01 12 0D 05 28 01 68 01 00 0E 60 36 FF FF 00 00`
    * **Loi universelle de longueur logique :** Pour toute trame standard terminée par `FF FF`, la longueur utile exacte de la trame est :
      $$L_{\text{logique}} = \texttt{m\_rxBuffer[1]} + 4$$
-     *(Sur `0x1000` : `0x0E + 4 = 18 octets`, checksum `0x36` à l'index 15, `FF FF` aux index 16-17, octets 18-19 ignorés).*
+     *(Sur `0x1000` : `0x0E + 4 = 18 octets`, checksum `0x36` à l'index 15, `FF FF` aux index 16-17, octets de padding 18-19 ignorés).*
 2. **Harmonisation de l'acquittement des commandes `0x0F00` (`CMD_SET_3B`) en 8 octets :**
    * Sur `HW 2.0`, toute commande `0x0F00` (`setLedRing`, `setPrices`, `setReducedPeriod`, `resetConsumptionData`, `factoryReset`) répond sur **9 octets** avec écho de la sous-commande en index 4 et statut en **index 5** (`0F 05 0F 00 [SubCmd] [Status] [CS] FF FF`).
    * Sur `HW 3.0`, la prise répond sur **8 octets** sans écho de sous-commande, plaçant le statut directement en **index 4** (`0F 04 0F 00 [Status=0x00] [CS=0x10] FF FF`), comme un `CMD_SET_2B`.
 3. **Suppression de `getSerialNumber` (`0x1100`) :**
    * L'opcode `0x1100` est ignoré par le `HW 3.0` (aucune notification émise sur `0xFFF4`).
-4. **Particularité du Checksum de `requestYearHistory` (`0x0C00`) sur `HW 3.0` :**
-   * Alors que les historiques `0x0A00` (24h, 55 octets) et `0x0B00` (30j, 127 octets) respectent strictement le checksum standard `(1 + sum) & 0xFF` sur `HW 3.0`, la trame `0x0C00` (12m, 55 octets) présente sur `HW 3.0` un décalage constant observé (`Expected - Got = 0x4C`) tout en s'incrémentant linéairement de `+1` à chaque `+1 Wh` ajouté au mois courant *(point réservé pour investigation dédiée)*.
+4. **Comportement des Checksums d'Historiques (`0x0A00`, `0x0B00`, `0x0C00`) sur `HW 3.0 / FW 1.30` (`exp_18` à `exp_22`) :**
+   * **Alignement structurel 100 % identique :** Les trames `0x0A00` (`55 octets`, `Byte[1]=0x33`), `0x0B00` (`127 octets`, `Byte[1]=0x7B`) et `0x0C00` (`55 octets`, `Byte[1]=0x33`) ont exactement la même structure, les mêmes longueurs et le même marqueur final `FF FF` que sur `HW 2.0`. Les valeurs d'énergie en Wh et les ratios HC `B3` y sont strictement exacts.
+   * **`0x0B00` (30 jours, 127 o) :** `CS_Got == CS_Exp` (`Écart = 0x00`) sur 100 % des captures (`exp_16` à `exp_22`) lorsque les jours récents `Slot[26..29]` sont actifs (`Slot[00..25] = 0 Wh`).
+   * **`0x0A00` (24 heures, 55 o) — Omission des premiers slots de gauche dans `CS_Got` :**
+     * Tous les slots récents de la moitié droite (`Slot[15..23]`) sont normalement inclus dans `CS_Got` (dès que `Slot[00..14] = 0`, `CS_Got == CS_Exp`, `Écart = 0x00`, démontré au Cliché #3 d'`exp_21`).
+     * En revanche, lorsqu'une consommation glisse dans les premiers slots à gauche (`Slot[00..04]`), la boucle interne de calcul de checksum du `FW 1.30` omet de la sommer dans `CS_Got` : l'écart `CS_Exp - CS_Got` est alors très exactement égal à la somme des octets des slots situés à gauche (`45 -> 27 -> 9 -> 0` lors de la sortie de `[00..02]` dans `exp_21` ; `6 + 10 = 16 = 0x10` lorsque les 6 Wh et 10 Wh d'`exp_21` ont glissé en `Slot[00..01]` dans `exp_22`).
+   * **`0x0C00` (12 mois, 55 o) — Biais calendaire dépendant de la date RTC dans `CS_Got` :**
+     * Tout au long d'une même journée calendaire, toute variation de `Slot[11]` (Wh et ratio HC `B3`) incrémente `CS_Got` du même delta exact que `CS_Exp` ($\Delta\texttt{CS\_Got} = \Delta\texttt{CS\_Exp}$, écart `CS_Exp - CS_Got` strictement constant : `0x92` le 26/11, `0x9A` le 27/11, `0x62` le 28/11, `0x91` le 30/11, `0xE2` le 01/12 et au reset `01/01/2020`).
+     * Toutefois, à payload de 52 octets `buf[0..51]` strictement constante (`CS_Exp = 0x08` invariant dans `exp_19` Clichés #0 à #4), le simple changement de la date RTC via `setDateTime()` modifie `CS_Got`, prouvant que le firmware `1.30` calcule la checksum de `0x0C00` sur sa structure interne en mémoire (incluant la date) et non sur le tampon BLE `tx_buf[2..51]`.
+   * **Stratégie de validation en Couche 1 (`SEM6000Device::handleNotification`) :**
+     Sur `HW 3.0`, les trames `0x0A00` et `0x0C00` étant transmises chacune en **1 seul paquet BLE atomique (`MTU = 160`)** protégé au niveau radio par le **CRC matériel 24 bits du Link Layer BLE** (aucun risque de perte ou de mélange de fragments contrairement au `HW 2.0`), `handleNotification()` valide ces trames sur leur intégrité structurelle stricte (`m_rxBuffer[0] == 0x0F`, `expectedLen == (size_t)m_rxBuffer[1] + 4 == 55`, et `m_rxBuffer[53..54] == 0xFF 0xFF`).
 
-#### 4. Révolution de la Cinématique de Comptage d'Énergie sur `HW 3.0 / FW 1.30` (`exp_17`)
-Le suivi haute cadence (~1 Hz) sous charge réelle (`488 W` puis `890 W`) en milieu d'heure (`17:30:50 -> 17:32:05`) puis lors du franchissement d'heure pile (`17:59:50 -> 18:00:15`) a démontré que le `HW 3.0` adopte une architecture de comptage radicalement plus moderne que le `HW 2.0` :
+> [!IMPORTANT]
+> **Points Ouverts & Limites Connues (TODO avant publication publique de la librairie `SEM6000Device`) :**
+> Dans le cadre d'une diffusion open-source future de `SEM6000Device` auprès d'utilisateurs tiers susceptibles d'exploiter l'ensemble des méthodes d'historiques :
+> 1. **`0x0A00` (`HW 3.0 / FW 1.30`) :** Déterminer l'index frontière exact (situé entre `Slot[04]` exclu et `Slot[15]` inclus, ex. boucle bornée à tort sur 12 slots `[12..23]`) à partir duquel le firmware `1.30` commence à sommer les slots dans `CS_Got`.
+> 2. **`0x0B00` (`HW 3.0 / FW 1.30`) :** Vérifier le comportement de `CS_Got` lorsque des consommations non nulles glissent dans les premiers index `Slot[00..25]` (au-delà de `J-4`).
+> 3. **`0x0C00` (`HW 3.0 / FW 1.30`) :** Établir la formule exacte du biais calendaire injecté par la date RTC dans `CS_Got`, ou documenter explicitement cette anomalie du firmware `1.30` dans les notes de version publiques de la bibliothèque.
 
-| Comportement / Registre | **`Hardware 2.0 / Firmware 1.24`** | **`Hardware 3.0 / Firmware 1.30`** |
+#### 4. Cinématique de Comptage d'Énergie & Rotations Calendaires sur `HW 3.0 / FW 1.30` (`exp_17` & `exp_21`)
+Le suivi haute cadence (~1 Hz) sous charge réelle (`exp_17`) et les tests de rotations Horaire, Journalière et Mensuelle (`exp_21`) ont établi les lois de comptage du `HW 3.0` :
+
+* **Loi n°1 (`HW 3.0`) — Intégration événementielle en RAM au quantum `+1 Wh` (*« Pas de conso, pas de calcul »*) :**
+  Sur `HW 3.0`, le report vers le jour courant `dailyWh[29]` et le mois courant `monthlyWh[11]` n'attend **pas l'heure pile (`HH:00:00`)**. À l'instant précis où l'intégrateur franchit `+1 Wh`, les trois registres `hourlyWh[23]`, `dailyWh[29]` et `monthlyWh[11]` sont mis à jour simultanément en temps réel :
+  $$\begin{aligned}
+  \texttt{hourlyWh[23]} &\mathrel{+}= 1\text{ Wh} \quad (\text{accumulateur de l'heure en cours en RAM volatile}) \\
+  \texttt{dailyWh[29]} &= \sum (\text{heures révolues du jour en Flash}) + \texttt{hourlyWh[23]} \\
+  \texttt{monthlyWh[11]} &= \sum (\text{jours révolus du mois en Flash}) + \texttt{dailyWh[29]}
+  \end{aligned}$$
+  * ⚠️ **Corollaire critique (Anti-Double Comptage) :** Sur `HW 3.0`, `dailyWh[29]` et `monthlyWh[11]` **incluent déjà l'heure en cours `hourlyWh[23]`** à chaque instant.
+* **Loi n°2 (`HW 3.0`) — Cinématique atomique de `totalKwhWh` (`0x0400[14..17]`) à l'heure pile (`HH:00:00`) :**
+  Le registre 32 bits `totalKwhWh` de la trame `0x0400` représente le **cumul en mémoire Flash de toutes les heures révolues** :
+  * Pendant toute la durée d'une heure en cours, `totalKwhWh` reste **strictement constant** (aucune écriture Flash à chaque Wh).
+  * Au franchissement d'une heure pile (`HH:00:00`), le firmware ajoute atomiquement l'heure qui vient de se fermer dans `totalKwhWh` (`totalKwhWh += H_fermée`), décale `hourlyWh[23]` dans `hourlyWh[22]` (sauvegardé en Flash) et remet `hourlyWh[23]` à `0 Wh`.
+* **Loi n°3 (`HW 3.0`) — Pré-condition de déclenchement des rotations en test accéléré (`exp_19` vs `exp_21`) :**
+  Lors d'un saut temporel par `setDateTime()`, injecter une heure à seulement 2 secondes de la frontière (`XX:59:58`) ne laisse pas à la tâche périodique du firmware `1.30` le temps d'échantillonner l'état pré-bascule. Une marge d'environ **15 secondes avant l'échéance (`XX:59:45`)** suivie d'un écoulement naturel jusqu'à `(XX+1):00:10` déclenche à 100 % les rotations Horaire (`0x0A00` + `0x0400`), Journalière (`0x0B00`) et Mensuelle (`0x0C00`).
+
+#### 5. Micro-Coupure / Coupure Secteur sur `HW 3.0` (`exp_22`) & Critique Architecturale de `totalKwhWh`
+L'expérience de coupure secteur complète avec charge active avant coupure, à froid après coupure, puis après remise à l'heure + 30 s (`exp_22` v1 & v2) a révélé le comportement exact du `HW 3.0` :
+
+1. **Reset et Gel de la RTC interne au `01/01/2020 00:00:00` :**
+   * Après une coupure secteur (~10 s), la RTC interne du `HW 3.0` est réinitialisée à la date d'usine **`01/01/2020 à 00:00:00`** et **reste totalement figée à `00:00:00` (les secondes n'avancent pas)** tant que la prise n'a pas reçu une trame `setDateTime` (`0x0100`).
+   * *Preuves arithmétiques directes par la Sonde Timer (`exp_22`) :*
+     * Cible `02/01/2020 23:59:59` $\rightarrow$ $\Delta t = \texttt{0x02A2FF} = 172\,799\text{ s} = 2 \times 86\,400 - 1\text{ s}$ (soit très exactement `01/01/2020 00:00:00` à la seconde près !).
+     * Cible `31/12/2026 23:59:59` $\rightarrow$ $\Delta t_{24\text{b}} = \texttt{0x2B0B7F} = (2\,557 \times 86\,400 - 1) \ \& \ \texttt{0xFFFFFF}$ (`0x0D2B0B7F` tronqué sur 24 bits).
+2. **Arrêt total du comptage tant que la prise n'est pas remise à l'heure :**
+   * Tant que la RTC est figée au `01/01/2020 00:00:00`, **aucun Wh n'est comptabilisé** (même sous une charge de `895 W`) : `hourlyWh[23]` reste bloqué à `0 Wh`, et comme l'horloge ne franchit jamais `HH:00:00`, **`totalKwhWh` (`0x0400`) reste lui aussi indéfiniment figé**.
+   * Une prise `HW 3.0` subissant une micro-coupure secteur sans qu'une passerelle ou l'application mobile ne se reconnecte pour lui envoyer `setDateTime()` cesse donc définitivement de compter l'énergie.
+3. **Persistance Flash vs Perte RAM & Phénomène de Masquage par la Date :**
+   * **Conservés à 100 % en Flash :** `totalKwhWh` (`0x0400`), les heures révolues (`0x0A00`), les jours révolus (`0x0B00`), les mois révolus (`0x0C00`), les paramètres (`0x1000`), les plannings (`0x1400`) et le mode aléatoire (`0x1600`), ainsi que l'état du relais (`ON`).
+   * **Perdus en RAM volatile :** L'énergie de **l'heure entamée `hourlyWh[23]`** (non encore versée dans `totalKwhWh` à `HH:00:00`) et tout **Timer unitaire actif (`0x0800`)** sont effacés à `0`.
+   * **Masquage temporaire de `M[11]` et `J[29]` sous amnésie :** Tant que la RTC pointe sur `01/01/2020`, `M[11]` et `J[29]` affichent `0 Wh`. Dès que `setDateTime()` restaure la date courante et que le 1ᵉʳ Wh est consommé, les jours révolus du mois en cours (stockés en Flash dans `0x0B00`) et les heures révolues du jour en cours **réapparaissent immédiatement** dans `M[11]` et `J[29]` (*dans `exp_22` v2 : `M[11]` passe de `130 Wh (116 Flash + 14 RAM)` avant coupure $\rightarrow$ `0 Wh` masqué après coupure $\rightarrow$ `117 Wh (116 Flash + 1 RAM)` dès `[+5s]` après remise à l'heure, puis `123 Wh (116 Flash + 7 RAM)` à `[+30s]`*).
+4. **Détecteur rapide de coupure secteur en 1 seule requête `GET` (`0x0900` $\rightarrow$ `00 00 00 00 00 30`) :**
+   * Alors que `0xFFF1`, `0x0400[12..13]` (`0x0100`), `0x1000`, `0x1400` et `0x1600` restent strictement inchangés après une coupure secteur, la lecture à froid de `getTimerStatus()` (`0x0900`) retourne invariablement la signature d'initialisation RAM du boot :
+     $$\texttt{0F 0E 09 00 00 } \mathbf{\texttt{00 00 00 00 00 30}} \texttt{ 00 00 00 00 3A FF FF}$$
+     où **`targetDay == 0x00 && targetMonth == 0x00 && targetYear == 0x30`** (`00/00/2048 00:00:00`).
+   * En s'assurant après chaque `setDateTime()` que les octets `targetDay/targetMonth` de `0x0900` en RAM contiennent une date valide non nulle (via un cycle furtif `setTimerAbs` + `stopTimer` si aucun timer n'était déjà mémorisé), une simple lecture passive `getTimerStatus()` (`0x0900`) détecte à 100 % toute micro-coupure secteur en **1 seule commande GET**, sans jamais perturber un éventuel timer actif (`action != 0x00`).
+5. **Critique Architecturale du Compteur `totalKwhWh` (« traité à l'économie ») :**
+   * Au lieu de faire de `totalKwhWh` le compteur maître incrémenté à chaque `+1 Wh` indépendamment de la RTC, le constructeur a subordonné `totalKwhWh` à l'accumulateur horaire volatile `hourlyWh[23]` (versé en Flash une seule fois par heure à `HH:00:00`).
+   * **Piège de régression d'index lors d'une coupure secteur :** Si la passerelle envoyait naïvement `totalKwhWh + hourlyWh[23]` à Domoticz, alors dans le cas d'`exp_22 (v2)` :
+     * Avant coupure : $34\,075 + 14 = \mathbf{34\,089\text{ Wh}}$ transmis à Domoticz.
+     * Après coupure + remise à l'heure + 30 s (`14 Wh` perdus en RAM côté prise, `7 Wh` nouveaux) : la prise affiche $34\,075 + 7 = \mathbf{34\,082\text{ Wh}}$ ($< 34\,089\text{ Wh}$ !).
+   * **Conclusion :** L'ESP32-S3 (`ManagedSEM6000`, Couche 2) doit obligatoirement maintenir son propre **« Vrai Index Perpétuel Monotone » en NVS (`m_perpetualIndexWh`)** pour chaque prise `HW 3.0` comme `HW 2.0`, en intégrant les deltas positifs de `hourlyWh[23]` au fil de l'eau et en utilisant `totalKwhWh` comme **ancre de rattrapage longue durée** lorsque c'est l'ESP32-S3 qui a été interrompu pendant plusieurs heures ou jours.
+
+#### 6. Tableau Récapitulatif Exhaustif des Différences Protocolaires et Fonctionnelles (`HW 2.0` vs `HW 3.0`)
+
+| Domaine / Fonction | **`Hardware 2.0 / Firmware 1.24`** | **`Hardware 3.0 / Firmware 1.30`** |
 | :--- | :--- | :--- |
-| **Octets `[12..13]` de `0x0400`** | Toujours `0x0000` | `0x0100` |
-| **Compteur `totalKwhWh` (`0x0400[14..17]`)** | **Inactif** (toujours figé à `0 Wh`) | **Actif & Persisté en Flash** (ex: `33 949 -> 33 967 -> 33 985 Wh`) |
-| **Mise à jour de `hourlyWh[23]` (`0x0A00`)** | Temps réel à chaque **`+1 Wh`** ; remis à `0` à `HH:00:00` | Temps réel à chaque **`+1 Wh`** ; remis à `0` à `HH:00:00` |
-| **Mise à jour de `dailyWh[29]` (`0x0B00`)** | **Différée à l'heure pile (`HH:00:00`)** uniquement | **Temps réel à chaque `+1 Wh`** (simultanée avec `hourlyWh[23]`) |
-| **Mise à jour de `monthlyWh[11]` (`0x0C00`)** | **Différée à l'heure pile (`HH:00:00`)** uniquement | **Temps réel à chaque `+1 Wh`** (simultanée avec `hourlyWh[23]`) |
-| **Mise à jour de `totalKwhWh` (`0x0400`)** | Jamais (`0`) | **À chaque heure pile (`HH:00:00`)** : `totalKwhWh += H_fermée` |
-
-* **Loi n°1 (`HW 3.0`) — Intégration événementielle au quantum `+1 Wh` (*« Pas de conso, pas de calcul »*) :**
-  Sur `HW 3.0`, le report vers le jour courant `dailyWh[29]` et le mois courant `monthlyWh[11]` n'attend **ni l'heure pile (`HH:00:00`), ni la minute pile (`XX:XX:00`)**. À l'instant précis où l'intégrateur franchit `+1 Wh`, les trois registres `hourlyWh[23]`, `dailyWh[29]` et `monthlyWh[11]` sont incrémentés simultanément de `+1 Wh`.
-  * ⚠️ **Corollaire critique (Anti-Double Comptage) :** Sur `HW 3.0`, `dailyWh[29]` et `monthlyWh[11]` **incluent déjà l'heure en cours `hourlyWh[23]`** à chaque instant. Lors du franchissement de `HH:00:00`, `hourlyWh[23]` glisse dans `hourlyWh[22]` et repart à `0 Wh`, tandis que `dailyWh[29]` et `monthlyWh[11]` poursuivent leur progression sans double addition.
-* **Loi n°2 (`HW 3.0`) — Cinématique atomique de `totalKwhWh` (`0x0400`) à l'heure pile :**
-  Le registre 32 bits `totalKwhWh` de la trame `0x0400` représente le **cumul perpétuel en mémoire Flash de toutes les heures révolues** depuis la mise en service (ou le dernier reset conso) de la prise.
-  * Pendant toute la durée d'une heure, `totalKwhWh` reste constant (zéro usure Flash inutile).
-  * À l'instant exact de la bascule d'heure pile (`HH:00:00`, démontré à la ligne 6 du Volet 2 d'`exp_17` : passage de `33 967` à `33 985 Wh` pour une heure fermée à `18 Wh`), le firmware committe atomiquement l'heure écoulée dans `totalKwhWh` au moment même où `hourlyWh[23]` retombe à `0 Wh`.
-* **Loi n°3 (`HW 3.0`) — Formule exacte de l'Index Perpétuel Temps Réel au Wh près :**
-  En combinant le cumul Flash des heures révolues (`totalKwhWh`) et l'accumulateur RAM de l'heure en cours (`hourlyWh[23]`), la passerelle dispose sur `HW 3.0` d'un **index perpétuel matériel exact à la seconde près et sans aucune discontinuité à l'heure pile** :
-  $$\mathbf{E_{\text{perpétuel (HW 3.0)}}(t) = \texttt{totalKwhWh}_{\texttt{0x0400}}(t) + \texttt{hourlyWh[23]}_{\texttt{0x0A00}}(t)}$$
-  *(Exemple d'`exp_17` autour de `18:00:00` : à `17:59:54`, $33\,967 + 18 = 33\,985\text{ Wh}$ ; à `17:59:55` après bascule, $33\,985 + 0 = 33\,985\text{ Wh}$ ; 5 s plus tard, $33\,985 + 1 = 33\,986\text{ Wh}$).*
-  De plus, `totalKwhWh` survivant en Flash aux débranchements secteur, **une prise `HW 3.0` ne perd jamais son index perpétuel global lors d'une coupure de courant**.
+| **Préfixes MAC observés** | `b0:b1:13:...`, `94:a9:a8:...` | `a3:00:00:...` |
+| **Advertising `Mfg[0..1]` & Cadence** | `01 18` — Annonce toutes les **`60 ms`** | `00 00` — Annonce toutes les **`120 ms`** |
+| **Advertising `Mfg[2..7]`** | Adresse MAC inversée (Little-Endian) | Adresse MAC inversée (Little-Endian) |
+| **MTU GATT & Fragmentation** | **`23 octets`** (trames 55/127 o fragmentées en 3 ou 7 paquets) | **`160 octets`** (toutes les trames reçues en **1 seul paquet**) |
+| **Intervalle de connexion GAP (`0x2A04`)** | `100..200 ms` | **`10..12,5 ms`** (~10x plus rapide) |
+| **Service `0x180A` (*Device Info*)** | Présent | **Supprimé** |
+| **Caractéristiques du service `0xFFF0`** | `0xFFF1`, **`0xFFF2`**, `0xFFF3`, `0xFFF4`, `0xFFF5`, `0xFFF6` | `0xFFF1`, `0xFFF3`, `0xFFF4` (**`0xFFF2`, `0xFFF5`, `0xFFF6` absentes**) |
+| **Identification `0xFFF1` (`[11..15]`)** | `01 18 02 00 13` (`FW 1.24`, `HW 2.0`) | `01 1E 03 00 0C` (`FW 1.30`, `HW 3.0`) |
+| **Numéro de série `0x1100`** | Supporté (25 octets, 16 caractères ASCII) | **Supprimé** (aucune notification) |
+| **Réponse `requestSettings` (`0x1000`)** | **18 octets** (`0F 0E 10 00 ... CS FF FF`) | **20 octets** avec padding `00 00` (`0F 0E 10 00 ... CS FF FF 00 00`) |
+| **Acquittement `CMD_SET_3B` (`0x0F00`)** | **9 octets** : `0F 05 0F 00 [SubCmd] [Status] [CS] FF FF` (**Statut index 5**) | **8 octets** : `0F 04 0F 00 [Status] [CS] FF FF` (**Statut index 4**) |
+| **Durée Timer `0x0900[11..13]`** | Entier **24 bits Big-Endian en secondes** (statique après SET) | Entier **24 bits Big-Endian en secondes** ($\Delta t$ recalculé si actif, `0` si inactif) |
+| **Lecture Plannings (`0x1400`)** | **Paginée en 3 pages $\times$ 56 o** (4 slots max/page, `CS_Valid = OUI`) | **Non paginée : 1 trame monolithique de 152 o** dès Page 0 (12 slots, `CS_Valid = OUI`) |
+| **Allocation `SlotId` Plannings (`0x1300`)** | **`12..1` (LIFO décroissant)**, calcule un `SortKey` non nul, conserve la date en hebdo | **`0..11` (FIFO croissant)**, `SortKey = 0`, force la date à `00/00/00` en hebdo |
+| **Acquittement `0x1300` (`setScheduler`)** | **10 octets** (`0F 06 13 00 [Status] 00 00 [CS] FF FF`) | **8 octets** (`0F 04 13 00 [Status] [CS] FF FF`) **+ notif spontanée `0x1400` ~1 ms après** |
+| **Mode Aléatoire (`0x1500` / `0x1600`)** | 15 octets (`CS_Valid = OUI`), défaut usine `00:00->00:00 (mask=0x00)` | 15 octets (`CS_Valid = OUI`), défaut usine `20:00->08:00 (mask=0xFF)` |
+| **Octets `[12..13]` de `0x0400`** | Toujours `0x0000` | Toujours `0x0100` |
+| **Compteur `totalKwhWh` (`0x0400[14..17]`)** | Inactif (`0 Wh` permanent) | **Actif en Flash**, mis à jour **1 fois/heure à `HH:00:00`** (`+= H_fermée`) |
+| **Mise à jour de `H[23]` (`0x0A00`)** | Temps réel à chaque `+1 Wh` (en RAM) | Temps réel à chaque `+1 Wh` (en RAM) |
+| **Mise à jour de `J[29]` & `M[11]`** | **À l'heure pile (`HH:00:00`)** uniquement | **Temps réel à chaque `+1 Wh`** ($J[29]$ et $M[11]$ incluent déjà $H[23]$) |
+| **Checksum `0x0A00` (24h, 55 o)** | Standard `(1 + sum(buf[2..51])) & 0xFF` sur les 24 slots | **Anomalie `FW 1.30`** : omet les premiers slots à gauche (`Slot[00..04]`) |
+| **Checksum `0x0B00` (30j, 127 o)** | Standard `(1 + sum(buf[2..123])) & 0xFF` | Standard vérifiée sur `[26..29]` (à confirmer sur `[00..25]`) |
+| **Checksum `0x0C00` (12m, 55 o)** | Standard `(1 + sum(buf[2..51])) & 0xFF` | **Anomalie `FW 1.30`** : inclut un biais interne lié à la date RTC |
+| **État RTC après coupure secteur** | Amnésique (`Word0 == 0xFFFF` sur `0xFFF2`), comptage bloqué | Figée au **`01/01/2020 00:00:00`**, comptage `H[23]` et `totalKwhWh` bloqué |
+| **Détection rapide de coupure secteur** | Lecture `0xFFF2` sans auth : **`Word0 == 0xFFFF`** | Lecture `0x0900` (`getTimerStatus`) : **`targetDay == 0 && targetMonth == 0` (`00 00 30`)** |
+| **Impact coupure secteur sur les Wh** | `H[23]` perdu (RAM) ; `J` et `M` (Flash) masqués à `0` jusqu'à `setDateTime` | `H[23]` perdu (RAM) ; `totalKwhWh` intact ; `J[29]` et `M[11]` masqués à `0` jusqu'à `setDateTime` |
 
 ---
 
@@ -418,52 +508,59 @@ L'architecture est découpée en trois couches distinctes pour isoler le protoco
         ├── SEM6000Manager.h/.cpp    # Couche 3 : Ordonnanceur multi-prises & Queue BLE
         └── main.cpp                 # Wi-Fi, NTP, Client Domoticz/MQTT & Boucle principale
 
-### Couche 1 : `SEM6000Device` (Pilote BLE Unifié `HW 2.0` / `HW 3.0`)
-* Encapsule uniquement la communication GATT/NimBLE avec une prise (connexion, authentification 32 bits, commandes ON/OFF, synchronisation horloge, lecture `FFF2` si présente, `0x0400` et historiques).
-* **Adaptations bi-génération transparentes (cible `v0.3.9`) :**
-  1. **Détection automatique du profil matériel :** Dès `connect()`, l'absence de la caractéristique `0xFFF2` (`m_pCharFFF2 == nullptr`) ou la lecture de `0xFFF1` (`hwMajor == 3`) identifie nativement une prise `HW 3.0`.
-  2. **Décodage par longueur logique dans `handleNotification()` :** Utilisation de `expectedLen = m_rxBuffer[1] + 4` pour localiser le marqueur `FF FF` et le checksum, éliminant automatiquement le padding `00 00` des paquets de 20 octets du `HW 3.0` (ex. `0x1000`).
+### Couche 1 : `SEM6000Device` (Pilote BLE Unifié `HW 2.0` / `HW 3.0` — Version `v0.4.0` « La Grande Réunification »)
+* Encapsule uniquement la communication GATT/NimBLE avec une prise (connexion, authentification 32 bits, commandes ON/OFF, synchronisation horloge, lecture `FFF2` si présente, `0x0400`, `0x0900` et historiques).
+* **Adaptations bi-génération transparentes (`v0.4.0`) :**
+  1. **Auto-détection de la génération matérielle dès `connect()` :** L'absence de la caractéristique `0xFFF2` (`m_pCharFFF2 == nullptr`) identifie immédiatement une prise `HW 3.0` (`isHardwareV3()`).
+  2. **Décodage par longueur logique dans `handleNotification()` :** Utilisation de `expectedLen = (size_t)m_rxBuffer[1] + 4` pour localiser le marqueur `FF FF` et la checksum, éliminant automatiquement le padding `00 00` des paquets de 20 octets du `HW 3.0` (`0x1000`).
   3. **Acquittement polymorphe `CMD_SET_3B` (`0x0F00`) :** Validation de `m_rxBuffer[5] == 0x00` lorsque la réponse fait 9 octets (`HW 2.0`) ou de `m_rxBuffer[4] == 0x00` lorsqu'elle fait 8 octets (`HW 3.0`).
-  4. **Tolérance / Adaptation du Checksum `0x0C00` sur `HW 3.0` :** Prise en compte de la règle de checksum propre à `0x0C00` sur `HW 3.0` (à finaliser).
+  4. **Décodage 24 bits Big-Endian en secondes dans `getTimerStatus()` (`0x0900`) :** `presetSeconds = (B11 << 16) | (B12 << 8) | B13`, et extraction systématique des octets cibles `targetSec..targetYear` même lorsque `active == false` (`action == 0x00`) pour permettre l'inspection de la sentinelle RAM post-coupure.
+  5. **Validation structurelle des historiques `0x0A00` / `0x0C00` sur `HW 3.0` :** Acceptation des trames `0x0A00` et `0x0C00` sur `HW 3.0` dès lors que `m_rxBuffer[0] == 0x0F`, `m_rxLength == expectedLen` (`55`) et `m_rxBuffer[53..54] == 0xFF 0xFF`, avec mémorisation d'un indicateur de diagnostic `m_lastChecksumValid`.
+  6. **Détection et correction de perte d'horloge bi-génération (`checkAndFixClockLoss`) :**
+     * Sur `HW 2.0` : via `readRawFFF2()` (`word0 == 0xFFFF`).
+     * Sur `HW 3.0` : via `getTimerStatus()` (`0x0900` : `targetDay == 0 && targetMonth == 0`), suivie de `setDateTime()` et de l'armement/désarmement immédiat de la sentinelle RAM (`setTimerAbs` + `stopTimer`).
+  7. **Filtrage des notifications spontanées par `m_expectedCmd` & Lecture bi-génération des plannings (`0x1300` / `0x1400`) :**
+     * Verrouillage de `m_rxBuffer` dans `handleNotification()` (`if (length == 0 || m_rxReady || m_expectedCmd == 0) return;` et vérification `incomingCmd == m_expectedCmd`) pour ignorer la notification spontanée `0x1400` émise par le `HW 3.0` ~1 ms après chaque acquittement `0x1300`.
+     * Arrêt automatique de pagination dans `requestAllSchedulers()` dès que `list.size() >= totalSchedulers` (traitant aussi bien la trame monolithique de 152 octets du `HW 3.0` que les 3 pages de 56 octets du `HW 2.0`).
 * Accesseurs standardisés sur les historiques :
   * `hourlyWh[23 - hoursAgo]`
   * `dailyWh[29 - daysAgo]`
   * `monthlyWh[11 - monthsAgo]`
 
-### Couche 2 : `ManagedSEM6000` (Machine à États & Index Perpétuel Bi-Génération)
-Encapsule par **composition forte** une instance `SEM6000Device` et adapte automatiquement sa stratégie selon la génération matérielle (`HW 2.0` vs `HW 3.0`) :
+### Couche 2 : `ManagedSEM6000` (Machine à États & Index Perpétuel Monotone Bi-Génération)
+Encapsule par **composition forte** une instance `SEM6000Device` et maintient en **NVS (`Preferences`)** le **Vrai Index Perpétuel Monotone (`uint32_t m_perpetualIndexWh`)** de chaque prise :
 
-1. **Calcul de l'Index Perpétuel 32 bits (`uint32_t indexWh`) & Monotonie Stricte :**
-   * **Sur `Hardware 3.0` (Mode Natif Matériel) :**
-     Utilisation directe du compteur perpétuel Flash de la prise combiné à l'heure en cours :
-     $$E_{\text{calculé}} = \text{Offset}_{\text{Domoticz}} + \texttt{totalKwhWh}_{\texttt{0x0400}} + \texttt{hourlyWh[23]}_{\texttt{0x0A00}}$$
-     Ce mode ne nécessite aucune détection de coupure secteur pour la survie de l'index et ne souffre d'aucune dérive même si l'ESP32 reste éteint plusieurs semaines.
-   * **Sur `Hardware 2.0` (Mode Reconstruction Logicielle NVS) :**
-     `totalKwhWh` étant figé à `0`, la Couche 2 intègre les incréments de `hourlyWh[23]`, détecte le franchissement asynchrone d'heure pile (`hourlyWh[23] < m_lastHourly23` avec récupération du solde dans `hourlyWh[22]`) et effectue le rattrapage multi-échelles post-panne (`hourlyWh[24]`, `dailyWh[30]`, `monthlyWh[12]`).
+1. **Calcul Différentiel de l'Index Perpétuel 32 bits (`m_perpetualIndexWh`) & Immunité aux Coupures Secteur :**
+   * **Pourquoi un accumulateur différentiel NVS est indispensable même sur `HW 3.0` :**
+     Lors d'une coupure secteur en milieu d'heure (ex. après `14 Wh` accumulés dans `H[23]`), la prise `HW 3.0` perd `H[23]` en RAM sans l'avoir versé dans `totalKwhWh`. Un calcul naïf `totalKwhWh + H[23]` reculerait de `14 Wh` et perdrait l'énergie consommée avant la coupure.
+   * **Algorithme sur `Hardware 3.0` (couple d'état `(m_lastTotalKwh0400, m_lastH23)`) :**
+     * *En cours d'heure (`totalKwhWh == m_lastTotalKwh0400` et `H[23] >= m_lastH23`)* :
+       $$\Delta\text{Wh} = H[23] - m\_\text{lastH23} \quad ; \quad m\_\text{perpetualIndexWh} \mathrel{+}= \Delta\text{Wh} \quad ; \quad m\_\text{lastH23} = H[23]$$
+     * *Sur détection de coupure secteur en cours d'heure (`0x0900` = `00 00 30`, ou `H[23] < m_lastH23` à `totalKwhWh` constant)* :
+       Les Wh accumulés avant la coupure étant déjà acquis dans `m_perpetualIndexWh`, on réinitialise la référence `m_lastH23 = 0` avant d'intégrer la nouvelle valeur `H[23]` post-resynchronisation ($\Delta\text{Wh} = H[23]$).
+     * *Au franchissement d'une ou plusieurs heures piles (`totalKwhWh > m_lastTotalKwh0400`, y compris après une longue coupure de l'ESP32-S3)* :
+       $$\Delta\text{Wh} = \max\Big(0,\ (\texttt{totalKwhWh} - m\_\texttt{lastTotalKwh0400}) + H[23] - m\_\text{lastH23}\Big)$$
+       $$m\_\text{perpetualIndexWh} \mathrel{+}= \Delta\text{Wh} \quad ; \quad m\_\text{lastTotalKwh0400} = \texttt{totalKwhWh} \quad ; \quad m\_\text{lastH23} = H[23]$$
+   * **Algorithme sur `Hardware 2.0` (`totalKwhWh == 0` permanent) :**
+     Intégration différentielle de `H[23]`, récupération du solde de fin d'heure dans `H[22]` lors du franchissement `HH:00:00` ($\Delta\text{Wh} = (H[22] - m\_\text{lastH23}) + H[23]$), remise à zéro de `m_lastH23` sur coupure secteur (`0xFFF2 == 0xFFFF`), et rattrapage multi-échelles (`hourlyWh[24]`, `dailyWh[30]`, `monthlyWh[12]`) après une absence prolongée de l'ESP32-S3.
    * **Garde-fou universel d'émission Domoticz (commun `HW 2.0` & `HW 3.0`) :**
-     $$\text{Index}_{\text{transmis}} = \max(\text{Index}_{\text{calculé}}, \text{Index}_{\text{Domoticz}})$$
-     L'ESP32 ne transmet **jamais** un index inférieur au précédent afin d'éviter tout débordement 32 bits dans la base SQLite de Domoticz.
+     L'ESP32-S3 ne transmet **jamais** un index inférieur au dernier index publié afin de prévenir tout rejet ou débordement 32 bits dans la base SQLite de Domoticz.
 
 2. **Détection d'Amnésie Horloge & Maintien à l'Heure NTP :**
-   * **Sur `Hardware 2.0` :** Lecture rapide de `0xFFF2` sans PIN. Si `Word0 == 0xFFFF` (coupure secteur $\ge 30\text{ s}$), injection immédiate de `setDateTime()` pour démasquer la Flash et relancer le comptage.
-   * **Sur `Hardware 3.0` (`0xFFF2` absente) :** Vérification périodique par la **Sonde Temporelle Furtive (`0x0900`)** et recalage en « Havre de Paix » (`HH:30:00`) uniquement si $|\text{Dérive}| \ge 5\text{ s}$.
+   * **Sur `Hardware 2.0` :** Lecture de `0xFFF2` sans PIN. Si `Word0 == 0xFFFF`, injection immédiate de `setDateTime()` pour démasquer la Flash et relancer le comptage.
+   * **Sur `Hardware 3.0` (`0xFFF2` absente) :** Lecture de `0x0900` (`getTimerStatus`). Si `targetDay == 0 && targetMonth == 0` (`00 00 30`), la RTC est figée au `01/01/2020 00:00:00` suite à une micro-coupure $\rightarrow$ injection immédiate de `setDateTime()` pour relancer le comptage et démasquer `M[11]`/`J[29]`, suivie du réarmement de la sentinelle RAM (`setTimerAbs` + `stopTimer`). En régime nominal, recalage périodique en « Havre de Paix » (`HH:30:00`) si la dérive mesurée par la Sonde Timer dépasse 5 secondes.
 
 3. **Surveillance de Surcharge :**
    * **Sur `Hardware 2.0` :** Surveillance légère via `0xFFF2` (`Word1` vs `Word0`).
    * **Sur `Hardware 3.0` :** Comparaison directe lors du poll `0x0400` entre la puissance active mesurée $P_{\text{mesurée}}$ (ou $I_{\text{mesuré}}$) et la consigne $P_{\max}$ mise en cache lors de la lecture initiale de `0x1000`.
 
-4. **Résilience et Rattrapage Multi-Échelles Post-Panne :**
-   Au redémarrage après une absence prolongée (coupure Wi-Fi, crash ESP32, vacances), calcul de $\Delta T = T_{\text{NTP}} - T_{\text{NVS}}$ :
-   * **Si $\Delta T \le 23\text{ h}$ :** Rattrapage intégral à la granularité horaire via `hourlyWh[24]`.
-   * **Si $24\text{ h} < \Delta T \le 29\text{ jours}$ :** Rattrapage via la somme des cases non comptabilisées de `dailyWh[30]`.
-   * **Si $\Delta T > 30\text{ jours}$ :** Rattrapage via l'historique mensuel `monthlyWh[12]`.
+4. **Résilience et Rattrapage Multi-Échelles Post-Panne de l'ESP32-S3 :**
+   Au redémarrage de l'ESP32-S3 après une absence prolongée (coupure Wi-Fi, maintenance ESP32, vacances) alors que les prises sont restées alimentées :
+   * **Sur `Hardware 3.0` :** Rattrapage direct et exact quelle que soit la durée d'absence grâce au différentiel Flash $\texttt{totalKwhWh} - m\_\texttt{lastTotalKwh0400}$.
+   * **Sur `Hardware 2.0` :** Calcul de $\Delta T = T_{\text{NTP}} - T_{\text{NVS}}$ et rattrapage via `hourlyWh[24]` ($\Delta T \le 23\text{ h}$), `dailyWh[30]` ($24\text{ h} < \Delta T \le 29\text{ j}$) ou `monthlyWh[12]` ($\Delta T > 30\text{ j}$).
 
 5. **Politique d'usure Flash NVS :**
-   * Sauvegarde en NVS (`Preferences`) déclenchée uniquement si $\Delta \ge 10\text{ Wh}$ ou si plus de 30 minutes se sont écoulées, garantissant une longévité de plus de 50 ans de la Flash de l'ESP32.
-
-6. **Auscultation Furtive de l'Horloge Interne (Lecture Indirecte via Timer) :**
-   * Orchestre la séquence non-destructive d'armement/lecture/désarmement rapide sur le registre Timer de Couche 1 (`SEM6000Device`) afin d'extraire la dérive réelle du quartz ($\Delta t$) par rapport au temps NTP (cf. Section 2.6 Règle 4).
-   * Permet d'inhiber tout recalage NTP superflu lorsque la dérive mesurée est inférieure à un seuil tolérable (ex: $|\text{Dérive}| < 5\text{ s}$), réduisant encore l'activité d'écriture sur la prise.
+   * Sauvegarde en NVS (`Preferences`) déclenchée uniquement si $\Delta \ge 10\text{ Wh}$ ou si plus de 30 minutes se sont écoulées, garantissant une longévité de plus de 50 ans de la Flash de l'ESP32-S3.
 
 ### Couche 3 : `SEM6000Manager`
 Ordonnance le parc de prises et assure la passerelle vers Domoticz :
@@ -472,4 +569,5 @@ Ordonnance le parc de prises et assure la passerelle vers Domoticz :
   * Dans un logement sur plusieurs niveaux (ex. 10 prises réparties entre cave, garage, arrière-cuisine derrière murs béton, salon et étages), plusieurs ESP32 exécutant le même firmware générique sont déployés par zone.
   * **Attribution déclarative stricte (Master Controller) :** Chaque ESP32 détient sa propre table de prises assignées. Une prise n'est interrogée que par son ESP32 Maître exclusif pour éviter toute collision ou déconnexion sauvage.
 * **Synchronisation Réseau :** Distribution du temps NTP et publication HTTP/JSON ou MQTT vers Domoticz.
+
 

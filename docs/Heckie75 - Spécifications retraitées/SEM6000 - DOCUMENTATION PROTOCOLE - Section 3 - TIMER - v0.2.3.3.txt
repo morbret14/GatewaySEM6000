@@ -38,7 +38,7 @@ Octet 8      : 10        : nombre des heures de la date UTC de déclenchement pr
 Octet 9      : 08        : nombre des jours de la date UTC de déclenchement programmée : 08
 Octet 10     : 07        : nombre des mois de la date UTC de déclenchement programmée : 07
 Octet 11     : 13        : nombre des années de la date UTC de déclenchement programmée : (20)19/07/08-16:04:16
-Octets 12-14 : 01 51 45  : durée d'exécution calculée par le SEM6000 au moment du SET : Heure-Minutes-Secondes !!!!
+Octets 12-14 : 01 51 45  : durée d'exécution calculée par le SEM6000 au moment du SET - entier 24 bits Big-Endian en secondes
 Octet 15     : 00        : valeur fixe
 Octet 16     : E8        : checksum -> 1 + somme des octets 3 à 15 inclus
 Octets 17-18 : FFFF      : séquence de fin statique

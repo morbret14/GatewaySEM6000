@@ -1,0 +1,159 @@
+SEM6000 - DOCUMENTATION PROTOCOLE
+SECTION 1 : PIN
+Version : 0.2.3.4 (Alignement Bi-Génération Hardware 2.0 / FW 1.24 & Hardware 3.0 / FW 1.30)
+
+Source : API.md & Rétro-ingénierie expérimentale (exp_13, exp_15, exp_16, exp_23)
+
+============================================================
+PRÉSENTATION GÉNÉRALE & ENCODAGE DU PIN (BCD vs BINAIRE 32 BITS)
+============================================================
+
+Toute session GATT authentifiée sur le SEM6000 (Hardware 2.0 comme Hardware 3.0)
+débute obligatoirement par l'envoi de la commande d'authentification 0x1700 (sous-commande 0x00).
+
+1. Encodage du code PIN sur 4 octets (Octets 6 à 9 de la requête) :
+   - Mode Historique (Application mobile constructeur) :
+     Chaque chiffre décimal (0 à 9) est codé sur 1 octet (0x00 à 0x09).
+     Exemple : PIN "0000" -> 00 00 00 00 ; PIN "1234" -> 01 02 03 04 (10 000 combinaisons).
+   - Mode Binaire 32 bits Étendu (authenticate32 / changePin32 dans SEM6000Device) :
+     Le microprogramme de la prise (HW 2.0 et HW 3.0) compare les 4 octets en binaire pur
+     sans restriction décimale : chaque octet peut prendre toute valeur de 0x00 à 0xFF
+     (soit un entier 32 bits Big-Endian de 0x00000000 à 0xFFFFFFFF -> 4,29 milliards de combinaisons).
+
+2. Règle universelle sur la notification de réponse 0x1700 (Identique HW 2.0 & HW 3.0) :
+   - La notification mesure toujours 10 octets :
+     0F 06 17 00 [STATUT] [ÉCHO_SOUS_CMD] 00 [Checksum] FF FF
+   - Octet 5 (index C : m_rxBuffer[4]) = STATUT D'EXÉCUTION (00 = succès, 01 = échec).
+   - Octet 6 (index C : m_rxBuffer[5]) = ÉCHO DE LA SOUS-COMMANDE (00 = Auth, 01 = Change PIN, 02 = Reset PIN).
+   - ATTENTION : Ne jamais chercher le statut en Octet 6 sur la famille 0x1700 (contrairement à la
+     famille 0x0F00 sur HW 2.0), sinon Change PIN (01) et Reset PIN (02) seraient interprétés à tort
+     comme des échecs alors que l'opération a réussi.
+
+
+============================================================
+1. AUTHORIZATION WITH PIN
+============================================================
+
+TRAME DE REQUÊTE (16 OCTETS)
+
+Valeur (avec PIN par défaut 00 00 00 00) :
+0F 0C 17 00 00 00 00 00 00 00 00 00 00 18 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0C        : longueur de la payload incluant la checksum (12 octets -> 16 octets au total)
+Octets 3-4   : 1700      : commande Authorization / PIN
+Octet 5      : 00        : sous-commande = requête d'authentification (Login)
+Octets 6-9   : 00000000  : valeur du PIN sur 4 octets (00 00 00 00 par défaut d'usine)
+Octets 10-13 : 00000000  : valeur statique
+Octet 14     : 18        : checksum -> 1 + somme des octets 3 à 13 inclus
+Octets 15-16 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE (10 OCTETS - IDENTIQUE HW 2.0 & HW 3.0)
+
+Valeur (Succès) :
+0F 06 17 00 00 00 00 18 FF FF
+
+Valeur (Échec / Mauvais PIN) :
+0F 06 17 00 01 00 00 19 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 06        : longueur de la payload incluant la checksum
+Octets 3-4   : 1700      : commande Login / PIN
+Octet 5      : 00 ou 01  : statut d'authentification (00 = succès, 01 = échec / PIN erroné)
+Octet 6      : 00        : écho de l'opération Login (00)
+Octet 7      : 00        : réservé (toujours 00)
+Octet 8      : 18 ou 19  : checksum -> 1 + somme des octets 3 à 7 inclus
+Octets 9-10  : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+100 % (Validé sur HW 2.0 / FW 1.24 et HW 3.0 / FW 1.30).
+
+
+============================================================
+2. CHANGE PIN
+============================================================
+
+TRAME DE REQUÊTE (16 OCTETS)
+
+Valeur (Changement de 00000000 vers 01020304) :
+0F 0C 17 00 01 01 02 03 04 00 00 00 00 23 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 0C        : longueur de la payload incluant la checksum
+Octets 3-4   : 1700      : commande PIN
+Octet 5      : 01        : sous-commande = changement de PIN
+Octets 6-9   : 01020304  : nouveau PIN (4 octets)
+Octets 10-13 : 00000000  : ancien PIN (4 octets)
+Octet 14     : 23        : checksum -> 1 + somme des octets 3 à 13 inclus
+Octets 15-16 : FFFF      : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE (10 OCTETS - IDENTIQUE HW 2.0 & HW 3.0)
+
+Valeur (Succès) :
+0F 06 17 00 00 01 00 19 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 06        : longueur de la payload incluant la checksum
+Octets 3-4   : 1700      : commande PIN
+Octet 5      : 00        : statut d'exécution (00 = succès, 01 = échec)
+Octet 6      : 01        : écho de l'opération Change PIN (01)
+Octet 7      : 00        : réservé
+Octet 8      : 19        : checksum -> 1 + somme des octets 3 à 7 inclus
+Octets 9-10  : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+100 %
+
+
+============================================================
+3. RESET PIN TO "0000" (0x00000000)
+============================================================
+
+TRAME DE REQUÊTE (16 OCTETS)
+
+Valeur :
+0F 0C 17 00 02 00 00 00 00 00 00 00 00 1A FF FF
+
+Décodage :
+
+Octet 1      : 0F                : séquence de début statique
+Octet 2      : 0C                : longueur de la payload incluant la checksum
+Octets 3-4   : 1700              : commande Authorization / PIN
+Octet 5      : 02                : sous-commande = Reset PIN to Default (00 00 00 00)
+Octets 6-13  : 0000000000000000  : valeur statique (8 octets à 0x00)
+Octet 14     : 1A                : checksum -> 1 + somme des octets 3 à 13 inclus (1 + 0x17 + 0x02 = 0x1A = 26)
+Octets 15-16 : FFFF              : séquence de fin statique
+
+NOTIFICATION DE RÉPONSE (10 OCTETS - IDENTIQUE HW 2.0 & HW 3.0)
+
+Valeur (Succès) :
+0F 06 17 00 00 02 00 1A FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 06        : longueur de la payload incluant la checksum
+Octets 3-4   : 1700      : commande PIN
+Octet 5      : 00        : statut d'exécution (00 = succès, 01 = échec)
+Octet 6      : 02        : écho de l'opération Reset PIN (02)
+Octet 7      : 00        : réservé
+Octet 8      : 1A        : checksum -> 1 + somme des octets 3 à 7 inclus (1 + 0x17 + 0x02 = 0x1A)
+Octets 9-10  : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+100 %
+
+============================================================
+FIN DE LA SECTION 1 : PIN (Version 0.2.3.4)
+============================================================

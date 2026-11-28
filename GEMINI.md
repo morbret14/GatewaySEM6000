@@ -27,7 +27,7 @@ Consulter systématiquement ce document pour toute implémentation ou ajustement
 ## 3. Découpage en 3 Couches (Vue d'ensemble)
 * **Couche 1 : Pilote BLE pur (`lib/SEM600Device/SEM6000Device.h/.cpp`)**
   * Encapsulation GATT/NimBLE bas niveau.
-  * *Règle :* Pilote scellé et validé en v0.3.8 — harmonisation universelle des statuts SET (CMD_SET_2B index 4, CMD_SET_3B index 5). Préserver et ne pas altérer.
+  * *Règle :* Pilote scellé et validé en **v0.4.0 ("La Grande Réunification : HW 2.0 & HW 3.0")** — support bi-génération transparent (`HW 2.0 / FW 1.24` et `HW 3.0 / FW 1.30`). Préserver et ne pas altérer.
 * **Couche 2 : Machine à états & Index Perpétuel (`src/ManagedSEM6000.h/.cpp`)**
   * Encapsule `SEM6000Device`. Gère la détection de coupure secteur, la remise à l'heure NTP et la continuité de l'index perpétuel en mémoire non volatile (`Preferences` / NVS).
 * **Couche 3 : Ordonnanceur & Réseau (`src/SEM6000Manager.h/.cpp` et `src/main.cpp`)**
@@ -40,6 +40,9 @@ Consulter systématiquement ce document pour toute implémentation ou ajustement
 * **Typage strict C++ :** Pour `authenticate32()`, toujours typer explicitement le code PIN en `(uint32_t)0x00000000` pour éviter l'ambiguïté de surcharge avec `const uint8_t*`.
 * **Séquencement radio BLE :** Ne jamais lancer d'opérations BLE concurrentes sur plusieurs prises simultanément ; toujours sérialiser les connexions.
 * **Code non-bloquant :** Bannir les boucles d'attente bloquantes (`delay()`) pouvant perturber les tâches système ou déclencher le chien de garde (Watchdog ESP32).
+* **Traçabilité & Archivage des Versions de `SEM6000Device` :**
+  * **Mention d'en-tête obligatoire (`@requires`) :** Tout programme, test d'expérimentation (`experiments/exp_*.cpp`) ou couche logicielle (`ManagedSEM6000`, `SEM6000Manager`, `main.cpp`) s'appuyant sur la librairie `SEM6000Device` doit mentionner explicitement dans son cartouche d'en-tête le numéro de version de la librairie requis pour son fonctionnement optimal (ex. `@requires SEM6000Device >= v0.4.0`), appuyé par les constantes `SEM6000_DEVICE_VERSION_STR` / `SEM6000_DEVICE_VERSION_HEX`.
+  * **Archivage systématique des versions :** Chaque version jalon de `SEM6000Device.h` et `SEM6000Device.cpp` doit être archivée à l'identique dans `archives/SEM6000Device/vX.Y.Z/` (hors des répertoires `lib/` et `src/` scrutés par PlatformIO) afin de permettre à tout moment la consultation, la comparaison ou la réexécution de travaux réalisés sur une version antérieure.
 
 ---
 

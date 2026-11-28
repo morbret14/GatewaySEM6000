@@ -1,0 +1,288 @@
+########################################################################################################################
+ 🏆 EXPÉRIENCE 23 : QUALIFICATION COMPLÈTE SEM6000Device v0.4.0 SUR CASCADE VÉLO (HW 3.0) -> THÉOULE (HW 2.0)
+ Date : 28/11/2026
+ Topologie physique du banc :
+   Secteur 230V ---> VÉLO (HW 3.0 / FW 1.30, a3:00:00:00:45:25) ---> THÉOULE (HW 2.0 / FW 1.24, 94:a9:a8:1a:37:0c) ---> Charge
+########################################################################################################################
+
+========================================================================================================================
+ PARTIE A — EXTRAIT DU TIR #1 (DÉTECTION LIVE D'AMNÉSIE HORLOGE 0xFFFF -> 0x410B SUR THÉOULE FRAÎCHEMENT REBRANCHÉE)
+========================================================================================================================
+  [1] dev.connect() — Tentative #1...
+  ✅ Connecté | isHardwareV3() = FALSE (HW 2.0) | hasCharacteristicFFF2() = TRUE
+  [2] dev.readRawFFF2(avant sync)  -> TRUE (Word0=0xFFFF=65535 | I=2.275 A)
+  [3] dev.getDeviceVendorAndVersions() -> SEM_OK     | Vendor="VOLCFT" | HW 2.0 / FW 1.24 (0x13)
+  [4] dev.getDeviceNameGATT()      -> SEM_OK     | Name="Voltcraft"
+  [5] dev.authenticate32(0)        -> SEM_OK
+  [6] dev.checkAndFixClockLoss()   -> SEM_OK     | clockLossDetected=OUI (Amnésie détectée & corrigée !)
+  [6b] dev.setDateTime(28/11 09:15)-> SEM_OK
+  [6c] dev.readRawFFF2(après sync) -> Word0=0x410B (16651 mA) | Démasquage 0xFFFF réussi=OUI
+  [7] dev.captureMeasurement()     -> SEM_OK     | Relais=ON | P=455.89 W | U=224 V | I=2.275 A | Word12_13=0x0000 | totalKwhWh=0 Wh | CS_Valid=OUI
+
+  Enseignements protocolaires découverts lors du Tir #1 sur le Volet 2 (Schedulers 0x1300 / 0x1400) :
+    1. Sur HW 3.0 (Vélo), chaque écriture 0x1300 (setScheduler / deleteScheduler) émet l'ACK 0x1300 (8 o) suivi ~1 ms plus
+       tard d'une notification spontanée 0x1400 (table complète à jour). -> Corrigé dans SEM6000Device v0.4.0 par verrouillage
+       de m_rxBuffer via m_expectedCmd et m_rxReady dans handleNotification().
+    2. Sur HW 3.0 (MTU 160), requestSchedulerPage(0) (0x1400) renvoie les 12 plannings d'un seul bloc en 1 trame monolithique
+       de 152 octets (CS_Valid=OUI) sans pagination, tandis que HW 2.0 (MTU 23) pagine par 4 slots sur 3 pages de 56 octets.
+       -> Corrigé dans requestAllSchedulers() par arrêt dès list.size() >= totalSchedulers.
+    3. Sur HW 2.0 (Théoule), les SlotId sont alloués à rebours de 12 jusqu'à 1 (LIFO) et tout appel 0x1300 avec un slotId
+       déjà présent dans la table modifie ce slot en place au lieu d'en créer un nouveau. Passer slotId = 0 en création
+       (mode = 0x00) constitue la règle universelle bi-génération permettant d'allouer 12 slots (0..11 sur HW 3.0, 12..1 sur
+       HW 2.0) et de faire rejeter le 13e (SEM_ERR_RESPONSE_REJECTED, RX[4]=0x01).
+
+
+========================================================================================================================
+ PARTIE B — TIR #2 COMPLET (QUALIFICATION 100 % NOMINALE DES 3 VOLETS APRÈS INTÉGRATION DES CORRECTIFS v0.4.0)
+========================================================================================================================
+
+########################################################################################################################
+ 🏆 EXPÉRIENCE 23 : QUALIFICATION COMPLÈTE SEM6000Device v0.4.0 SUR CASCADE VÉLO (HW 3.0) -> THÉOULE (HW 2.0)
+########################################################################################################################
+
+========================================================================================================================
+ 🧪 QUALIFICATION COMPLÈTE SEM6000Device v0.4.0 SUR : 1. TÊTE CASCADE : VÉLO (HW 3.0) (a3:00:00:00:45:25)
+========================================================================================================================
+  [1] dev.connect() — Tentative #1...
+  ✅ Connecté | isHardwareV3() = TRUE (HW 3.0) | hasCharacteristicFFF2() = FALSE
+
+  --------------------------------------------------------------------------------------------------------
+  🔹 VOLET 1 : MÉTHODES DE BASE, AUTO-GUÉRISON D'HORLOGE & HISTORIQUES
+  --------------------------------------------------------------------------------------------------------
+  [2] dev.readRawFFF2(avant sync)  -> FALSE (attendu sur HW 3.0)
+  [3] dev.getDeviceVendorAndVersions() -> SEM_OK     | Vendor="VOLCFT" | HW 3.0 / FW 1.30 (0x0C)
+  [4] dev.getDeviceNameGATT()      -> SEM_OK     | Name="Wattmètre mobile"
+  [5] dev.authenticate32(0)        -> SEM_OK
+  [6] dev.checkAndFixClockLoss()   -> SEM_OK     | clockLossDetected=NON (Horloge déjà active)
+  [6b] dev.setDateTime(28/11 09:15)-> SEM_OK
+  [7] dev.captureMeasurement()     -> SEM_OK     | Relais=ON | P=0.76 W | U=222 V | I=0.000 A | Word12_13=0x0100 | totalKwhWh=34086 Wh | CS_Valid=OUI
+  [8] dev.requestSettings()        -> SEM_OK     | Pmax=3680 W | LED=1 | Tarif HP/HC=18/13 c | HC=1 (0528->0168) | CS_Valid=OUI
+  [9] dev.setLedRing(actuel=1)     -> SEM_OK     (Validation CMD_SET_3B 9o HW2.0 / 8o HW3.0)
+  [10] Sonde Timer API (28/11 23:59:59) -> Arm=SEM_OK | Get=SEM_OK (preset24b=53099 s, attendu ~53099s) | Stop=SEM_OK
+  [11] dev.getSerialNumber()       -> SEM_ERR_NOT_SUPPORTED (en 0 ms) | Serial="N/A (HW3.0)"
+  [12] dev.requestDayHistory()     -> SEM_OK     | Cumul24h=   44 Wh | H[22..23]=0/33 Wh | CS_Math_Valid=NON (Toléré HW3.0)
+  [13] dev.requestMonthHistory()   -> SEM_OK     | Cumul30j=  171 Wh | J[28..29]=11/44 Wh | CS_Math_Valid=OUI
+  [14] dev.requestYearHistory()    -> SEM_OK     | Cumul12m= 4557 Wh | M[10..11]=116/171 Wh | CS_Math_Valid=NON (Toléré HW3.0)
+
+  --------------------------------------------------------------------------------------------------------
+  🔹 VOLET 2 : STRESS-TEST & ALIGNEMENT DES SCHEDULERS (0x1300 / 0x1400 — 12 MAX + 13e REJETÉ)
+  --------------------------------------------------------------------------------------------------------
+
+    📋 [DUMP SCHEDULERS : 2A. État Initial avant création]
+       📥 Page 0 brute (0x1400) ( 8 o, CS_Valid=OUI) : 0F 04 14 00 00 15 FF FF 
+       -> requestAllSchedulers() = SEM_OK | Total annoncé=0 | Slots extraits=0
+
+    🛠️ [2B. Création de 13 Schedulers (12 attendus OK avec slotId=0, 13e attendu REJETÉ)] :
+       -> Création #01 (slotId=0, ACTIF  , UNIQUE, mask=0x00, 22:01) : SEM_OK                    (RX[4]=0x00)
+       -> Création #02 (slotId=0, ACTIF  , HEBDO , mask=0x02, 22:02) : SEM_OK                    (RX[4]=0x00)
+       -> Création #03 (slotId=0, ACTIF  , UNIQUE, mask=0x00, 22:03) : SEM_OK                    (RX[4]=0x00)
+       -> Création #04 (slotId=0, INACTIF, HEBDO , mask=0x04, 22:04) : SEM_OK                    (RX[4]=0x00)
+       -> Création #05 (slotId=0, ACTIF  , UNIQUE, mask=0x00, 22:05) : SEM_OK                    (RX[4]=0x00)
+       -> Création #06 (slotId=0, ACTIF  , HEBDO , mask=0x08, 22:06) : SEM_OK                    (RX[4]=0x00)
+       -> Création #07 (slotId=0, ACTIF  , UNIQUE, mask=0x00, 22:07) : SEM_OK                    (RX[4]=0x00)
+       -> Création #08 (slotId=0, ACTIF  , HEBDO , mask=0x10, 22:08) : SEM_OK                    (RX[4]=0x00)
+       -> Création #09 (slotId=0, INACTIF, UNIQUE, mask=0x00, 22:09) : SEM_OK                    (RX[4]=0x00)
+       -> Création #10 (slotId=0, ACTIF  , HEBDO , mask=0x20, 22:10) : SEM_OK                    (RX[4]=0x00)
+       -> Création #11 (slotId=0, ACTIF  , UNIQUE, mask=0x00, 22:11) : SEM_OK                    (RX[4]=0x00)
+       -> Création #12 (slotId=0, ACTIF  , HEBDO , mask=0x40, 22:12) : SEM_OK                    (RX[4]=0x00)
+       -> Création #13 (slotId=0, ACTIF  , UNIQUE, mask=0x00, 22:13) : SEM_ERR_RESPONSE_REJECTED (RX[4]=0x01)
+
+    📋 [DUMP SCHEDULERS : 2C. Après tentative de création de 13 Schedulers]
+       📥 Page 0 brute (0x1400) (152 o, CS_Valid=OUI) : 0F 94 14 00 0C 00 01 01 00 1A 0C 19 16 01 00 00 00 01 01 01 02 00 00 00 16 02 00 00 00 02 01 01 00 1A 0C 19 16 03 00 00 00 03 00 01 04 00 00 00 16 04 00 00 00 04 01 01 00 1A 0C 19 16 05 00 00 00 05 01 01 08 00 00 00 16 06 00 00 00 06 01 01 00 1A 0C 19 16 07 00 00 00 07 01 01 10 00 00 00 16 08 00 00 00 08 00 01 00 1A 0C 19 16 09 00 00 00 09 01 01 20 00 00 00 16 0A 00 00 00 0A 01 01 00 1A 0C 19 16 0B 00 00 00 0B 01 01 40 00 00 00 16 0C 00 00 00 C7 FF FF 
+       -> requestAllSchedulers() = SEM_OK | Total annoncé=12 | Slots extraits=12
+       Idx | SlotId | État    | Action | DayMask | Date       | Heure | SortKey
+       ----+--------+---------+--------+---------+------------+-------+--------
+       #01 |    0   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:01 |     0
+       #02 |    1   | ACTIF   |  ON    |  0x02   | 2000/00/00 | 22:02 |     0
+       #03 |    2   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:03 |     0
+       #04 |    3   | INACTIF |  ON    |  0x04   | 2000/00/00 | 22:04 |     0
+       #05 |    4   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:05 |     0
+       #06 |    5   | ACTIF   |  ON    |  0x08   | 2000/00/00 | 22:06 |     0
+       #07 |    6   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:07 |     0
+       #08 |    7   | ACTIF   |  ON    |  0x10   | 2000/00/00 | 22:08 |     0
+       #09 |    8   | INACTIF |  ON    |  0x00   | 2026/12/25 | 22:09 |     0
+       #10 |    9   | ACTIF   |  ON    |  0x20   | 2000/00/00 | 22:10 |     0
+       #11 |   10   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:11 |     0
+       #12 |   11   | ACTIF   |  ON    |  0x40   | 2000/00/00 | 22:12 |     0
+
+    ✏️ [2D. Modification de 2 Schedulers existants (SlotId=0 -> 23:31 HEBDO 0x7F, SlotId=5 -> 23:36 INACTIF)] :
+       -> Modif SlotId= 0 (23:31, ACTIF, mask=0x7F)   : SEM_OK
+       -> Modif SlotId= 5 (23:36, INACTIF, mask=0x00) : SEM_OK
+
+    📋 [DUMP SCHEDULERS : 2D. Après modification de 2 Slots existants]
+       📥 Page 0 brute (0x1400) (152 o, CS_Valid=OUI) : 0F 94 14 00 0C 00 01 01 7F 00 00 00 17 1F 00 00 00 01 01 01 02 00 00 00 16 02 00 00 00 02 01 01 00 1A 0C 19 16 03 00 00 00 03 00 01 04 00 00 00 16 04 00 00 00 04 01 01 00 1A 0C 19 16 05 00 00 00 05 00 01 00 1A 0C 1F 17 24 00 00 00 06 01 01 00 1A 0C 19 16 07 00 00 00 07 01 01 10 00 00 00 16 08 00 00 00 08 00 01 00 1A 0C 19 16 09 00 00 00 09 01 01 20 00 00 00 16 0A 00 00 00 0A 01 01 00 1A 0C 19 16 0B 00 00 00 0B 01 01 40 00 00 00 16 0C 00 00 00 81 FF FF 
+       -> requestAllSchedulers() = SEM_OK | Total annoncé=12 | Slots extraits=12
+       Idx | SlotId | État    | Action | DayMask | Date       | Heure | SortKey
+       ----+--------+---------+--------+---------+------------+-------+--------
+       #01 |    0   | ACTIF   |  ON    |  0x7F   | 2000/00/00 | 23:31 |     0
+       #02 |    1   | ACTIF   |  ON    |  0x02   | 2000/00/00 | 22:02 |     0
+       #03 |    2   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:03 |     0
+       #04 |    3   | INACTIF |  ON    |  0x04   | 2000/00/00 | 22:04 |     0
+       #05 |    4   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:05 |     0
+       #06 |    5   | INACTIF |  ON    |  0x00   | 2026/12/31 | 23:36 |     0
+       #07 |    6   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:07 |     0
+       #08 |    7   | ACTIF   |  ON    |  0x10   | 2000/00/00 | 22:08 |     0
+       #09 |    8   | INACTIF |  ON    |  0x00   | 2026/12/25 | 22:09 |     0
+       #10 |    9   | ACTIF   |  ON    |  0x20   | 2000/00/00 | 22:10 |     0
+       #11 |   10   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:11 |     0
+       #12 |   11   | ACTIF   |  ON    |  0x40   | 2000/00/00 | 22:12 |     0
+
+    🗑️ [2E. Destruction des 12 Schedulers via deleteScheduler(slotId)] :
+       -> suppressions confirmées SEM_OK : 12 / 12
+
+    📋 [DUMP SCHEDULERS : 2E. Vérification Finale après destruction (Attendu : 0 scheduler)]
+       📥 Page 0 brute (0x1400) ( 8 o, CS_Valid=OUI) : 0F 04 14 00 00 15 FF FF 
+       -> requestAllSchedulers() = SEM_OK | Total annoncé=0 | Slots extraits=0
+
+  --------------------------------------------------------------------------------------------------------
+  🔹 VOLET 3 : TEST DU MODE ALÉATOIRE (0x1500 / 0x1600 — PLAGE NOCTURNE 22:00->05:00 HORS CRÉNEAU 09:15)
+  --------------------------------------------------------------------------------------------------------
+    📥 [3A] getRandomMode(initial) (15 o, CS_Valid=OUI) : 0F 0B 16 00 00 FF 14 00 08 00 00 00 32 FF FF 
+       -> Status=SEM_OK | active=INACTIF | mask=0xFF | plage=20:00 -> 08:00
+    📤 [3B] setRandomMode(ACTIF, mask=0x7F, 22:00->05:00) -> SEM_OK (Attente 3 secondes...)
+    📥 [3C] getRandomMode(après 3s) (15 o, CS_Valid=OUI) : 0F 0B 16 00 01 7F 16 00 05 00 00 00 B2 FF FF 
+       -> Status=SEM_OK | active=ACTIF (✅) | mask=0x7F | plage=22:00 -> 05:00
+    📤 [3D] setRandomMode(INACTIF / Restauration) -> SEM_OK
+    📥 [3E] getRandomMode(final) (15 o, CS_Valid=OUI) : 0F 0B 16 00 00 FF 14 00 08 00 00 00 32 FF FF 
+       -> Status=SEM_OK | active=INACTIF (✅) | mask=0xFF | plage=20:00 -> 08:00
+
+  [BLE] 🔌 Déconnecté proprement de 1. TÊTE CASCADE : VÉLO (HW 3.0).
+
+========================================================================================================================
+ 🧪 QUALIFICATION COMPLÈTE SEM6000Device v0.4.0 SUR : 2. AVAL CASCADE : THÉOULE (HW 2.0) (94:a9:a8:1a:37:0c)
+========================================================================================================================
+  [1] dev.connect() — Tentative #1...
+  ✅ Connecté | isHardwareV3() = FALSE (HW 2.0) | hasCharacteristicFFF2() = TRUE
+
+  --------------------------------------------------------------------------------------------------------
+  🔹 VOLET 1 : MÉTHODES DE BASE, AUTO-GUÉRISON D'HORLOGE & HISTORIQUES
+  --------------------------------------------------------------------------------------------------------
+  [2] dev.readRawFFF2(avant sync)  -> TRUE (Word0=0x410B=16651 | I=0.012 A)
+  [3] dev.getDeviceVendorAndVersions() -> SEM_OK     | Vendor="VOLCFT" | HW 2.0 / FW 1.24 (0x13)
+  [4] dev.getDeviceNameGATT()      -> SEM_OK     | Name="Voltcraft"
+  [5] dev.authenticate32(0)        -> SEM_OK
+  [6] dev.checkAndFixClockLoss()   -> SEM_OK     | clockLossDetected=NON (Horloge déjà active)
+  [6b] dev.setDateTime(28/11 09:15)-> SEM_OK
+  [6c] dev.readRawFFF2(après sync) -> Word0=0x410B (16651 mA) | Démasquage 0xFFFF réussi=OUI
+  [7] dev.captureMeasurement()     -> SEM_OK     | Relais=ON | P=0.00 W | U=225 V | I=0.012 A | Word12_13=0x0000 | totalKwhWh=0 Wh | CS_Valid=OUI
+  [8] dev.requestSettings()        -> SEM_OK     | Pmax=3680 W | LED=1 | Tarif HP/HC=200/100 c | HC=0 (0000->0000) | CS_Valid=OUI
+  [9] dev.setLedRing(actuel=1)     -> SEM_OK     (Validation CMD_SET_3B 9o HW2.0 / 8o HW3.0)
+  [10] Sonde Timer API (28/11 23:59:59) -> Arm=SEM_OK | Get=SEM_OK (preset24b=53099 s, attendu ~53099s) | Stop=SEM_OK
+  [11] dev.getSerialNumber()       -> SEM_OK                (en 100 ms) | Serial="ML01D1-012000000"
+  [12] dev.requestDayHistory()     -> SEM_OK     | Cumul24h=    5 Wh | H[22..23]=0/5 Wh | CS_Math_Valid=OUI
+  [13] dev.requestMonthHistory()   -> SEM_OK     | Cumul30j=    0 Wh | J[28..29]=0/0 Wh | CS_Math_Valid=OUI
+  [14] dev.requestYearHistory()    -> SEM_OK     | Cumul12m=    0 Wh | M[10..11]=0/0 Wh | CS_Math_Valid=OUI
+
+  --------------------------------------------------------------------------------------------------------
+  🔹 VOLET 2 : STRESS-TEST & ALIGNEMENT DES SCHEDULERS (0x1300 / 0x1400 — 12 MAX + 13e REJETÉ)
+  --------------------------------------------------------------------------------------------------------
+
+    📋 [DUMP SCHEDULERS : 2A. État Initial avant création]
+       📥 Page 0 brute (0x1400) ( 8 o, CS_Valid=OUI) : 0F 04 14 00 00 15 FF FF 
+       -> requestAllSchedulers() = SEM_OK | Total annoncé=0 | Slots extraits=0
+
+    🛠️ [2B. Création de 13 Schedulers (12 attendus OK avec slotId=0, 13e attendu REJETÉ)] :
+       -> Création #01 (slotId=0, ACTIF  , UNIQUE, mask=0x00, 22:01) : SEM_OK                    (RX[4]=0x00)
+       -> Création #02 (slotId=0, ACTIF  , HEBDO , mask=0x02, 22:02) : SEM_OK                    (RX[4]=0x00)
+       -> Création #03 (slotId=0, ACTIF  , UNIQUE, mask=0x00, 22:03) : SEM_OK                    (RX[4]=0x00)
+       -> Création #04 (slotId=0, INACTIF, HEBDO , mask=0x04, 22:04) : SEM_OK                    (RX[4]=0x00)
+       -> Création #05 (slotId=0, ACTIF  , UNIQUE, mask=0x00, 22:05) : SEM_OK                    (RX[4]=0x00)
+       -> Création #06 (slotId=0, ACTIF  , HEBDO , mask=0x08, 22:06) : SEM_OK                    (RX[4]=0x00)
+       -> Création #07 (slotId=0, ACTIF  , UNIQUE, mask=0x00, 22:07) : SEM_OK                    (RX[4]=0x00)
+       -> Création #08 (slotId=0, ACTIF  , HEBDO , mask=0x10, 22:08) : SEM_OK                    (RX[4]=0x00)
+       -> Création #09 (slotId=0, INACTIF, UNIQUE, mask=0x00, 22:09) : SEM_OK                    (RX[4]=0x00)
+       -> Création #10 (slotId=0, ACTIF  , HEBDO , mask=0x20, 22:10) : SEM_OK                    (RX[4]=0x00)
+       -> Création #11 (slotId=0, ACTIF  , UNIQUE, mask=0x00, 22:11) : SEM_OK                    (RX[4]=0x00)
+       -> Création #12 (slotId=0, ACTIF  , HEBDO , mask=0x40, 22:12) : SEM_OK                    (RX[4]=0x00)
+       -> Création #13 (slotId=0, ACTIF  , UNIQUE, mask=0x00, 22:13) : SEM_ERR_RESPONSE_REJECTED (RX[4]=0x01)
+
+    📋 [DUMP SCHEDULERS : 2C. Après tentative de création de 13 Schedulers]
+       📥 Page 0 brute (0x1400) (56 o, CS_Valid=OUI) : 0F 34 14 00 0C 01 01 01 40 1A 0C 19 16 0C 00 00 B7 02 01 01 00 1A 0C 19 16 0B 00 00 76 03 01 01 20 1A 0C 19 16 0A 00 00 95 04 00 01 00 1A 0C 19 16 09 00 00 73 45 FF FF 
+       📥 Page 1 brute (0x1400) (56 o, CS_Valid=OUI) : 0F 34 14 00 0C 05 01 01 10 1A 0C 19 16 08 00 00 83 06 01 01 00 1A 0C 19 16 07 00 00 72 07 01 01 08 1A 0C 19 16 06 00 00 79 08 01 01 00 1A 0C 19 16 05 00 00 70 A7 FF FF 
+       📥 Page 2 brute (0x1400) (56 o, CS_Valid=OUI) : 0F 34 14 00 0C 09 00 01 04 1A 0C 19 16 04 00 00 72 0A 01 01 00 1A 0C 19 16 03 00 00 6E 0B 01 01 02 1A 0C 19 16 02 00 00 6F 0C 01 01 00 1A 0C 19 16 01 00 00 6C 71 FF FF 
+       -> requestAllSchedulers() = SEM_OK | Total annoncé=12 | Slots extraits=12
+       Idx | SlotId | État    | Action | DayMask | Date       | Heure | SortKey
+       ----+--------+---------+--------+---------+------------+-------+--------
+       #01 |    1   | ACTIF   |  ON    |  0x40   | 2026/12/25 | 22:12 |   183
+       #02 |    2   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:11 |   118
+       #03 |    3   | ACTIF   |  ON    |  0x20   | 2026/12/25 | 22:10 |   149
+       #04 |    4   | INACTIF |  ON    |  0x00   | 2026/12/25 | 22:09 |   115
+       #05 |    5   | ACTIF   |  ON    |  0x10   | 2026/12/25 | 22:08 |   131
+       #06 |    6   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:07 |   114
+       #07 |    7   | ACTIF   |  ON    |  0x08   | 2026/12/25 | 22:06 |   121
+       #08 |    8   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:05 |   112
+       #09 |    9   | INACTIF |  ON    |  0x04   | 2026/12/25 | 22:04 |   114
+       #10 |   10   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:03 |   110
+       #11 |   11   | ACTIF   |  ON    |  0x02   | 2026/12/25 | 22:02 |   111
+       #12 |   12   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:01 |   108
+
+    ✏️ [2D. Modification de 2 Schedulers existants (SlotId=1 -> 23:31 HEBDO 0x7F, SlotId=6 -> 23:36 INACTIF)] :
+       -> Modif SlotId= 1 (23:31, ACTIF, mask=0x7F)   : SEM_OK
+       -> Modif SlotId= 6 (23:36, INACTIF, mask=0x00) : SEM_OK
+
+    📋 [DUMP SCHEDULERS : 2D. Après modification de 2 Slots existants]
+       📥 Page 0 brute (0x1400) (56 o, CS_Valid=OUI) : 0F 34 14 00 0C 01 01 01 7F 1A 0C 1F 17 1F 00 00 12 02 01 01 00 1A 0C 19 16 0B 00 00 76 03 01 01 20 1A 0C 19 16 0A 00 00 95 04 00 01 00 1A 0C 19 16 09 00 00 73 F9 FF FF 
+       📥 Page 1 brute (0x1400) (56 o, CS_Valid=OUI) : 0F 34 14 00 0C 05 01 01 10 1A 0C 19 16 08 00 00 83 06 00 01 00 1A 0C 1F 17 24 00 00 9C 07 01 01 08 1A 0C 19 16 06 00 00 79 08 01 01 00 1A 0C 19 16 05 00 00 70 F4 FF FF 
+       📥 Page 2 brute (0x1400) (56 o, CS_Valid=OUI) : 0F 34 14 00 0C 09 00 01 04 1A 0C 19 16 04 00 00 72 0A 01 01 00 1A 0C 19 16 03 00 00 6E 0B 01 01 02 1A 0C 19 16 02 00 00 6F 0C 01 01 00 1A 0C 19 16 01 00 00 6C 71 FF FF 
+       -> requestAllSchedulers() = SEM_OK | Total annoncé=12 | Slots extraits=12
+       Idx | SlotId | État    | Action | DayMask | Date       | Heure | SortKey
+       ----+--------+---------+--------+---------+------------+-------+--------
+       #01 |    1   | ACTIF   |  ON    |  0x7F   | 2026/12/31 | 23:31 |    18
+       #02 |    2   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:11 |   118
+       #03 |    3   | ACTIF   |  ON    |  0x20   | 2026/12/25 | 22:10 |   149
+       #04 |    4   | INACTIF |  ON    |  0x00   | 2026/12/25 | 22:09 |   115
+       #05 |    5   | ACTIF   |  ON    |  0x10   | 2026/12/25 | 22:08 |   131
+       #06 |    6   | INACTIF |  ON    |  0x00   | 2026/12/31 | 23:36 |   156
+       #07 |    7   | ACTIF   |  ON    |  0x08   | 2026/12/25 | 22:06 |   121
+       #08 |    8   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:05 |   112
+       #09 |    9   | INACTIF |  ON    |  0x04   | 2026/12/25 | 22:04 |   114
+       #10 |   10   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:03 |   110
+       #11 |   11   | ACTIF   |  ON    |  0x02   | 2026/12/25 | 22:02 |   111
+       #12 |   12   | ACTIF   |  ON    |  0x00   | 2026/12/25 | 22:01 |   108
+
+    🗑️ [2E. Destruction des 12 Schedulers via deleteScheduler(slotId)] :
+       -> suppressions confirmées SEM_OK : 12 / 12
+
+    📋 [DUMP SCHEDULERS : 2E. Vérification Finale après destruction (Attendu : 0 scheduler)]
+       📥 Page 0 brute (0x1400) ( 8 o, CS_Valid=OUI) : 0F 04 14 00 00 15 FF FF 
+       -> requestAllSchedulers() = SEM_OK | Total annoncé=0 | Slots extraits=0
+
+  --------------------------------------------------------------------------------------------------------
+  🔹 VOLET 3 : TEST DU MODE ALÉATOIRE (0x1500 / 0x1600 — PLAGE NOCTURNE 22:00->05:00 HORS CRÉNEAU 09:15)
+  --------------------------------------------------------------------------------------------------------
+    📥 [3A] getRandomMode(initial) (15 o, CS_Valid=OUI) : 0F 0B 16 00 00 00 00 00 00 00 00 00 17 FF FF 
+       -> Status=SEM_OK | active=INACTIF | mask=0x00 | plage=00:00 -> 00:00
+    📤 [3B] setRandomMode(ACTIF, mask=0x7F, 22:00->05:00) -> SEM_OK (Attente 3 secondes...)
+    📥 [3C] getRandomMode(après 3s) (15 o, CS_Valid=OUI) : 0F 0B 16 00 01 7F 16 00 05 00 00 00 B2 FF FF 
+       -> Status=SEM_OK | active=ACTIF (✅) | mask=0x7F | plage=22:00 -> 05:00
+    📤 [3D] setRandomMode(INACTIF / Restauration) -> SEM_OK
+    📥 [3E] getRandomMode(final) (15 o, CS_Valid=OUI) : 0F 0B 16 00 00 00 00 00 00 00 00 00 17 FF FF 
+       -> Status=SEM_OK | active=INACTIF (✅) | mask=0x00 | plage=00:00 -> 00:00
+
+  [BLE] 🔌 Déconnecté proprement de 2. AVAL CASCADE : THÉOULE (HW 2.0).
+
+========================================================================================================================
+ 📊 MATRICE DE QUALIFICATION FINALE — SEM6000Device v0.4.0 (THÉOULE HW 2.0 vs VÉLO HW 3.0)
+========================================================================================================================
+ Méthode / Test API SEM6000Device     | 2. AVAL CASCADE : THÉOULE (HW 2.0)  | 1. TÊTE CASCADE : VÉLO (HW 3.0)   
+--------------------------------------+--------------------------------------+--------------------------------------
+ connect() & isHardwareV3()           | OK    / isHw3=FALSE                  | OK    / isHw3=TRUE 
+ FFF2 Avant / Après Sync              | 0x410B -> 0x410B (Tir#1: 0xFFFF->OK) | N/A (0xFFF2 absente)
+ getDeviceVendorAndVersions (0xFFF1)  | HW 2.0 / FW 1.24 (0x13)              | HW 3.0 / FW 1.30 (0x0C)             
+ getDeviceNameGATT (0x2A00)           | Voltcraft                            | Wattmètre mobile                   
+ authenticate32 (0x1700)              | SEM_OK                               | SEM_OK                              
+ checkAndFixClockLoss()               | SEM_OK           (Tir#1: loss=OUI)   | SEM_OK           (loss=NON)
+ captureMeasurement (0x0400)          | SEM_OK (ON , P=   0.0W, Tot=    0Wh) | SEM_OK (ON , P=   0.8W, Tot=34086Wh)
+ requestSettings (0x1000, pad 20o)    | SEM_OK     (Pmax=3680 W)             | SEM_OK     (Pmax=3680 W)
+ setLedRing (0x0F0005, CMD_SET_3B)    | SEM_OK                               | SEM_OK                              
+ getTimerStatus (0x0900, 24b sec)     | SEM_OK     (Δt=   53099 s)           | SEM_OK     (Δt=   53099 s)
+ getSerialNumber (0x1100)             | SEM_OK     (ML01D1-012000000      )  | SEM_ERR_NOT_SUPPORTED (N/A (HW3.0))
+ requestDayHistory (0x0A00 - 24h)     | SEM_OK   (H23=   5Wh, CS_Eq=OUI)     | SEM_OK   (H23=  33Wh, CS_Eq=NON)
+ requestMonthHistory (0x0B00 - 30j)   | SEM_OK   (J29=   0Wh, CS_Eq=OUI)     | SEM_OK   (J29=  44Wh, CS_Eq=OUI)
+ requestYearHistory (0x0C00 - 12m)    | SEM_OK   (M11=    0Wh, CS_Eq=OUI)    | SEM_OK   (M11=  171Wh, CS_Eq=NON)
+ Schedulers : Créés (1..12) / Lus     | 12 créés OK / 12 lus en Flash        | 12 créés OK / 12 lus en Flash
+ Scheduler 13e (Attendu Rejeté)       | SEM_ERR_RESPONSE_REJECTED            | SEM_ERR_RESPONSE_REJECTED           
+ Schedulers : Modif #1 & #6 / Restant | SEM_OK   & SEM_OK   (Total=12)       | SEM_OK   & SEM_OK   (Total=12)
+ Schedulers : Purge finale (Attendu 0)| Restant =  0                         | Restant =  0
+ Random Mode : ON (3s) -> OFF final   | SEM_OK (lu=ON /0x7F) -> SEM_OK (OFF) | SEM_OK (lu=ON /0x7F) -> SEM_OK (OFF)
+========================================================================================================================

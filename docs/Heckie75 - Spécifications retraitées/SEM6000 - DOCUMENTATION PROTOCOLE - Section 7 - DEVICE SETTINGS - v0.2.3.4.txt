@@ -1,0 +1,269 @@
+SEM6000 - DOCUMENTATION PROTOCOLE
+SECTION 7 : DEVICE SETTINGS
+Version : 0.2.3.4 (Alignement Bi-Génération Hardware 2.0 / FW 1.24 & Hardware 3.0 / FW 1.30)
+
+Source : API.md & Rétro-ingénierie expérimentale (exp_14, exp_15, exp_16, exp_23)
+
+============================================================
+1. PRÉSENTATION GÉNÉRALE & ARCHITECTURES GATT (HW 2.0 vs HW 3.0)
+============================================================
+
+Cette section regroupe l'identification passive (Advertising BLE), l'architecture GATT
+et les commandes propres à l'identité du périphérique :
+
+- Identification passive en Advertising BLE (Manufacturer Data 8 octets)
+- Informations Constructeur, Version Firmware et Version Hardware (Char 0xFFF1)
+- Lecture et modification du Nom de l'appareil (Char 0x2A00 & Cmd 0x0200)
+- Lecture du Numéro de série (Cmd 0x1100 — supportée uniquement sur Hardware 2.0)
+
+============================================================
+1-BIS. SIGNATURE PASSIVE EN ADVERTISING BLE (exp_14 & exp_15)
+============================================================
+
+Sans établir de connexion GATT, les trames d'annonce BLE (Advertising) contiennent un
+champ Manufacturer Data de 8 octets permettant d'authentifier une prise SEM6000 et de
+déterminer sa génération matérielle :
+
+- Octets 1-2 (Mfg[0..1]) — Signature de génération matérielle & Cadence radio :
+  * 01 18 -> Hardware 2.0 / Firmware 1.24 (cadence d'annonce : 60 ms, ~16.6 trames/s)
+  * 00 00 -> Hardware 3.0 / Firmware 1.30 (cadence d'annonce : 120 ms, ~8.3 trames/s)
+- Octets 3-8 (Mfg[2..7]) — Signature Miroir MAC (Little-Endian) :
+  Contiennent les 6 octets de l'adresse MAC BLE publique de la prise en ordre inversé.
+  Exemple pour Vélo (MAC a3:00:00:00:45:25, HW 3.0) : MfgData = 00 00 25 45 00 00 00 A3.
+
+============================================================
+1-TER. COMPARAISON DES TABLES GATT CONNECTÉES (exp_16)
+============================================================
+
+- MTU GATT négocié :
+  * Hardware 2.0 (FW 1.24) : 23 octets fixe (fragmentation des trames > 20 octets).
+  * Hardware 3.0 (FW 1.30) : 160 octets (toutes les trames sont reçues en 1 seul paquet BLE).
+- Paramètres GAP préférés (Char 0x2A04) :
+  * Hardware 2.0 : 50 00 A0 00 00 00 E8 03 (Intervalle BLE 100..200 ms, timeout 10 s).
+  * Hardware 3.0 : 08 00 0A 00 00 00 58 02 (Intervalle BLE 10..12.5 ms, timeout 6 s -> ~10x plus rapide).
+- Service Device Information (UUID 0x180A) :
+  * Hardware 2.0 : Présent (caractéristiques 0x2A23 à 0x2A50).
+  * Hardware 3.0 : Supprimé.
+- Service Principal Voltcraft (UUID 0xFFF0) :
+  * Hardware 2.0 : 6 caractéristiques (0xFFF1, 0xFFF2, 0xFFF3, 0xFFF4, 0xFFF5, 0xFFF6).
+  * Hardware 3.0 : 3 caractéristiques uniquement :
+    - 0xFFF1 (READ / WRITE) : Informations constructeur et versions FW/HW
+    - 0xFFF3 (WRITE_NR)     : Canal d'émission des requêtes (Command Requests)
+    - 0xFFF4 (NOTIFY)       : Canal de réception des notifications (Responses)
+    (Les caractéristiques 0xFFF2, 0xFFF5 et 0xFFF6 sont absentes sur Hardware 3.0).
+
+
+============================================================
+2. DEVICE VENDOR / HARDWARE / FIRMWARE (CARACTÉRISTIQUE 0xFFF1)
+============================================================
+
+OBJECTIF
+
+Lire directement (sans authentification PIN) l'identifiant du constructeur, la version
+du Firmware et la version du Hardware sur la caractéristique UUID 0xFFF1.
+
+============================================================
+LECTURE GATT DIRECTE
+============================================================
+
+UUID : 0000fff1-0000-1000-8000-00805f9b34fb (Handle 0x0025 sur HW 2.0)
+
+============================================================
+RÉPONSES (16 OCTETS - CAPTURES RÉELLES)
+============================================================
+
+Exemple 1 (API.md - ancien firmware 1.13 sur HW 2.0) :
+56 4F 4C 43 46 54 04 00 00 00 00 01 0D 02 00 1E
+
+Exemple 2 (Parc actuel Hardware 2.0 / Firmware 1.24 - Théoule, Chambre Cédric, Bureau... - exp_15, exp_23) :
+56 4F 4C 43 46 54 00 00 00 00 00 01 18 02 00 13
+
+Exemple 3 (Parc actuel Hardware 3.0 / Firmware 1.30 - Vélo, Lave-linge, Sèche-linge - exp_15, exp_23) :
+56 4F 4C 43 46 54 00 00 00 00 00 01 1E 03 00 0C
+
+============================================================
+DÉCODAGE
+============================================================
+
+Octets 1-6   : 56 4F 4C 43 46 54 : chaîne ASCII "VOLCFT" (identifiant constructeur Voltcraft)
+Octets 7-11  : 00 00 00 00 00    : octets réservés (04 00 00 00 00 sur très anciens FW 1.13)
+Octet 12     : 01                : Firmware Version Major (1)
+Octet 13     : 18 ou 1E          : Firmware Version Minor :
+                                   - 0x18 = 24 -> Firmware 1.24 (sur Hardware 2.0)
+                                   - 0x1E = 30 -> Firmware 1.30 (sur Hardware 3.0)
+Octet 14     : 02 ou 03          : Hardware Version Major :
+                                   - 0x02 = 2  -> Hardware 2.0
+                                   - 0x03 = 3  -> Hardware 3.0
+Octet 15     : 00                : Hardware Version Minor (0)
+Octet 16     : 13 ou 0C          : Octet de révision interne (0x13 sur HW 2.0/FW 1.24 ; 0x0C sur HW 3.0/FW 1.30)
+
+NIVEAU DE CONFIANCE : 100 %
+
+
+============================================================
+3. GET NAME (CARACTÉRISTIQUE STANDARD 0x2A00)
+============================================================
+
+OBJECTIF
+
+Lire directement (sans authentification PIN) le nom GATT du périphérique sur la
+caractéristique standard Generic Access -> Device Name (UUID 0x2A00).
+
+============================================================
+LECTURE GATT DIRECTE
+============================================================
+
+UUID : 00002a00-0000-1000-8000-00805f9b34fb (Handle 0x0003)
+
+============================================================
+EXEMPLES DE RÉPONSES (CAPTURES RÉELLES exp_23)
+============================================================
+
+Exemple 1 (Nom d'usine par défaut sur Théoule HW 2.0 - 9 octets ASCII) :
+56 6F 6C 74 63 72 61 66 74                      : "Voltcraft"
+
+Exemple 2 (Nom personnalisé avec caractère accentué UTF-8 sur Vélo HW 3.0 - 17 octets UTF-8) :
+57 61 74 74 6D C3 A8 74 72 65 20 6D 6F 62 69 6C 65 : "Wattmètre mobile"
+
+============================================================
+RÈGLES & DIFFÉRENCES HW 2.0 vs HW 3.0
+============================================================
+
+- Lecture GATT directe sans checksum.
+- Encodage ASCII / UTF-8 (jusqu'à 19 octets utiles via la commande 0x0200).
+- Propriétés GATT de 0x2A00 (exp_16) :
+  * Sur Hardware 2.0 : READ uniquement (modification exclusivement via la commande 0x0200 sur 0xFFF3).
+  * Sur Hardware 3.0 : READ | WRITE.
+
+NIVEAU DE CONFIANCE : 100 %
+
+
+============================================================
+4. SET NAME (COMMANDE 0x0200)
+============================================================
+
+OBJECTIF
+
+Modifier le nom du périphérique via le protocole applicatif (0xFFF3 / 0xFFF4).
+
+============================================================
+TRAME DE REQUÊTE (27 OCTETS)
+============================================================
+
+Valeur (Exemple avec chaîne vide) :
+
+0F 17 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 03 FF FF
+
+============================================================
+STRUCTURE
+============================================================
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 17        : longueur de la payload incluant la checksum (0x17 = 23 -> 27 octets au total)
+Octets 3-4   : 0200      : commande Set Name
+Octets 5-23  : 00..00    : Nom en ASCII / UTF-8 sur 19 octets maximum (complété par des 0x00)
+Octet 24     : 00        : '\0' - terminateur de chaîne obligatoire
+Octet 25     : 03        : checksum -> 1 + somme des octets 3 à 24 inclus
+Octets 26-27 : FFFF      : séquence de fin statique
+
+============================================================
+NOTIFICATION DE RÉPONSE (8 OCTETS)
+============================================================
+
+Valeur :
+
+0F 04 02 00 00 03 FF FF
+
+============================================================
+DÉCODAGE
+============================================================
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 04        : longueur de la payload incluant la checksum
+Octets 3-4   : 0200      : commande Set Name
+Octet 5      : 00        : résultat (00 = succès, 01 = échec)
+Octet 6      : 03        : checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE : 100 %
+
+
+============================================================
+5. GET SERIAL (COMMANDE 0x1100 — HARDWARE 2.0 UNIQUEMENT)
+============================================================
+
+OBJECTIF
+
+Lire le numéro de série interne de 16 caractères du périphérique.
+
+ATTENTION — SUPPRESSION SUR HARDWARE 3.0 (exp_15, exp_16, exp_23) :
+- Sur Hardware 2.0 / Firmware 1.24 : Commande pleinement supportée (retourne 25 octets en 2 notifications).
+- Sur Hardware 3.0 / Firmware 1.30 : Commande SUPPRIMÉE ! Le firmware 1.30 ignore la requête 0x1100
+  et n'émet aucune notification sur 0xFFF4. Dans la librairie SEM6000Device v0.4.0, getSerialNumber()
+  vérifie isHardwareV3() et retourne immédiatement SEM_ERR_NOT_SUPPORTED (en 0 ms) sans bloquer sur un timeout.
+
+============================================================
+TRAME DE REQUÊTE (9 OCTETS)
+============================================================
+
+Valeur :
+
+0F 05 11 00 00 00 12 FF FF
+
+============================================================
+DÉCODAGE
+============================================================
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 05        : longueur de la payload incluant la checksum
+Octets 3-4   : 1100      : commande Get Serial
+Octets 5-6   : 0000      : valeur fixe
+Octet 7      : 12        : checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 8-9   : FFFF      : séquence de fin statique
+
+============================================================
+NOTIFICATIONS DE RÉPONSE SUR HARDWARE 2.0 (25 OCTETS EN 2 PAQUETS BLE MTU 23)
+============================================================
+
+NOTIFICATION #1 (20 octets) :
+0F 15 11 00 4D 4C 30 31 44 31 00 30 31 32 30 30 30 30 30 30
+
+Décodage Notification #1 :
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 15        : longueur de la payload incluant la checksum (0x15 = 21 -> 25 octets au total)
+Octets 3-4   : 1100      : commande Get Serial
+Octets 5-20  : 4D..30    : les 16 octets du numéro de série en ASCII.
+                           Note : sur les prises du parc HW 2.0 (ex. Théoule, Chambre Cédric), le 7e caractère
+                           du numéro de série (Octet 11) est un octet nul 0x00 séparant le préfixe "ML01D1"
+                           du suffixe "012000000" (affiché "ML01D1-012000000" par getSerialNumber()).
+
+NOTIFICATION #2 (5 octets) :
+00 00 34 FF FF
+(ou 00 00 64 FF FF si l'Octet 11 de la Notification #1 vaut 0x30 = '0' au lieu de 0x00)
+
+Décodage Notification #2 :
+Octets 1-2   : 0000      : octets '\0' de bourrage (Octets 21-22 de la trame complète)
+Octet 3      : 34 (ou 64): checksum -> 1 + somme des octets 3 à 22 de la trame complète
+Octets 4-5   : FFFF      : séquence de fin statique (Octets 24-25 de la trame complète)
+
+NIVEAU DE CONFIANCE : 100 %
+
+
+============================================================
+6. BONUS : LECTURE DES PARAMÈTRES 0x1000 SUR HARDWARE 3.0 (PADDING 20 OCTETS - exp_16, exp_23)
+============================================================
+
+Pour rappel (lié à la Section 2 - REQUEST SETTINGS 0x1000) :
+- Sur Hardware 2.0, la réponse 0x1000 mesure 18 octets :
+  0F 0E 10 00 [11 octets paramètres] [CS] FF FF
+- Sur Hardware 3.0, la réponse 0x1000 est envoyée dans un paquet BLE de 20 octets comportant
+  2 octets de bourrage (00 00) APRÈS le marqueur FF FF :
+  0F 0E 10 00 01 12 0D 05 28 01 68 01 00 0E 60 36 FF FF 00 00
+- Loi universelle de décodage : toujours utiliser la longueur logique L = Octet[2] + 4
+  (ici 0x0E + 4 = 18 octets) pour localiser la Checksum (en L - 3) et le marqueur FF FF (en L - 2 et L - 1),
+  en ignorant tout octet de padding au-delà de L.
+
+============================================================
+FIN DU FICHIER 7
+SECTION DEVICE SETTINGS (Version 0.2.3.4)
+============================================================

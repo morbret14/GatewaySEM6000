@@ -1,6 +1,6 @@
 /*
- * SEM6000Device.cpp - Version 0.3.8
- * Interface unifiée BLE pour Voltcraft SEM6000-FR
+ * SEM6000Device.cpp - Version 0.4.0 — "La Grande Réunification (One Roof for Two Hardwares : HW 2.0 & HW 3.0)"
+ * Interface unifiée BLE Bi-Génération pour Voltcraft SEM6000-FR
  */
 
 #include "SEM6000Device.h"
@@ -18,7 +18,7 @@ SEM6000Device::SEM6000Device(const char* macAddress, uint32_t pin)
     : m_macAddress(macAddress), m_pin(pin), m_connected(false), m_authorized(false),
       m_pClient(nullptr), m_pCharReq(nullptr), m_pCharRes(nullptr), m_pCharFFF2(nullptr),
       m_pCharFFF1(nullptr), m_pCharName(nullptr),
-      m_rxLength(0), m_rxReady(false) {}
+      m_rxLength(0), m_rxReady(false), m_lastChecksumValid(false), m_expectedCmd(0) {}
 
 SEM6000Device::~SEM6000Device() {
     disconnect();
@@ -33,11 +33,19 @@ uint8_t SEM6000Device::calculateChecksum(const uint8_t* buffer, size_t startInde
 }
 
 void SEM6000Device::handleNotification(NimBLERemoteCharacteristic* pRemoteChar, uint8_t* pData, size_t length) {
-    if (length == 0) return;
+    if (length == 0 || m_rxReady || m_expectedCmd == 0) return;
 
-    if (pData[0] == 0x0F) {
-        m_rxLength = 0;
-        m_rxReady = false;
+    if (m_rxLength == 0) {
+        if (pData[0] != 0x0F || length < 4) return;
+        uint16_t incomingCmd = ((uint16_t)pData[2] << 8) | pData[3];
+        if (incomingCmd != m_expectedCmd) return;
+        m_lastChecksumValid = false;
+    } else if (pData[0] == 0x0F && length >= 4) {
+        uint16_t incomingCmd = ((uint16_t)pData[2] << 8) | pData[3];
+        if (incomingCmd == m_expectedCmd) {
+            m_rxLength = 0;
+            m_lastChecksumValid = false;
+        }
     }
 
     if (m_rxLength + length <= sizeof(m_rxBuffer)) {
@@ -45,23 +53,58 @@ void SEM6000Device::handleNotification(NimBLERemoteCharacteristic* pRemoteChar, 
         m_rxLength += length;
     }
 
-    if (m_rxLength >= 5 && m_rxBuffer[m_rxLength - 2] == 0xFF && m_rxBuffer[m_rxLength - 1] == 0xFF) {
-        uint8_t expectedCS = calculateChecksum(m_rxBuffer, 2, m_rxLength - 5);
-        uint8_t receivedCS = m_rxBuffer[m_rxLength - 3];
-
-        if (expectedCS != receivedCS) {
-            Serial.printf("[SEM6000] CHECKSUM INVALID ! Expected: 0x%02X | Got: 0x%02X (Total: %d bytes)\n", 
-                          expectedCS, receivedCS, m_rxLength);
-            return;
-        }
-
-        m_rxReady = true;
+    if (m_rxLength < 5 || m_rxBuffer[0] != 0x0F) {
+        return;
     }
-    else if (m_rxLength == 19 && m_rxBuffer[0] == 0x0F && m_rxBuffer[2] == 0x04) {
+
+    uint16_t cmd = ((uint16_t)m_rxBuffer[2] << 8) | m_rxBuffer[3];
+
+    // 1. Cas particulier de la télémétrie 0x0400 (19 octets fixes sans marqueur FF FF final)
+    if (cmd == 0x0400 && m_rxLength >= 19) {
+        m_rxLength = 19;
         uint8_t expectedCS = calculateChecksum(m_rxBuffer, 2, 16);
         uint8_t receivedCS = m_rxBuffer[18];
 
-        if (expectedCS == receivedCS) {
+        m_lastChecksumValid = (expectedCS == receivedCS);
+        if (m_lastChecksumValid) {
+            m_expectedCmd = 0;
+            m_rxReady = true;
+        } else {
+            Serial.printf("[SEM6000] CHECKSUM INVALID (0x0400) ! Expected: 0x%02X | Got: 0x%02X\n",
+                          (unsigned)expectedCS, (unsigned)receivedCS);
+        }
+        return;
+    }
+
+    // 2. Trames standard terminées par FF FF : utilisation de la longueur logique Byte[1] + 4
+    //    (absorbe automatiquement le padding 00 00 de 0x1000 sur HW 3.0)
+    size_t expectedLen = (size_t)m_rxBuffer[1] + 4;
+    if (expectedLen >= 5 && expectedLen <= sizeof(m_rxBuffer) && m_rxLength >= expectedLen) {
+        if (m_rxBuffer[expectedLen - 2] == 0xFF && m_rxBuffer[expectedLen - 1] == 0xFF) {
+            m_rxLength = expectedLen;
+            uint8_t expectedCS = calculateChecksum(m_rxBuffer, 2, expectedLen - 5);
+            uint8_t receivedCS = m_rxBuffer[expectedLen - 3];
+
+            m_lastChecksumValid = (expectedCS == receivedCS);
+            if (!m_lastChecksumValid) {
+                // Sur HW 3.0 / FW 1.30, les historiques 0x0A00 (55 o), 0x0B00 (127 o) et 0x0C00 (55 o)
+                // arrivent en 1 paquet BLE unique (MTU 160, protégé par le CRC-24 matériel BLE) mais
+                // présentent un biais de calcul interne de checksum dans le firmware 1.30.
+                bool isHistoryFrame = ((cmd == 0x0A00 && expectedLen == 55) ||
+                                       (cmd == 0x0B00 && expectedLen == 127) ||
+                                       (cmd == 0x0C00 && expectedLen == 55));
+                if (isHardwareV3() && isHistoryFrame) {
+                    m_expectedCmd = 0;
+                    m_rxReady = true;
+                    return;
+                }
+
+                Serial.printf("[SEM6000] CHECKSUM INVALID (0x%04X) ! Expected: 0x%02X | Got: 0x%02X (Len: %u bytes)\n",
+                              (unsigned)cmd, (unsigned)expectedCS, (unsigned)receivedCS, (unsigned)m_rxLength);
+                return;
+            }
+
+            m_expectedCmd = 0;
             m_rxReady = true;
         }
     }
@@ -72,8 +115,8 @@ bool SEM6000Device::connect(uint32_t timeoutMs) {
 
     NimBLEDevice::setMTU(160);
     m_pClient = NimBLEDevice::createClient();
+    m_pClient->setConnectTimeout(timeoutMs);
 
-    // Correction ici : m_macAddress.c_str() pour compatibilité NimBLEAddress
     NimBLEAddress address(m_macAddress.c_str(), BLE_ADDR_PUBLIC);
 
     if (!m_pClient->connect(address)) {
@@ -127,24 +170,33 @@ void SEM6000Device::disconnect() {
         m_pClient->disconnect();
         NimBLEDevice::deleteClient(m_pClient);
     }
-    m_pClient = nullptr;
-    m_connected = false;
+    m_pClient   = nullptr;
+    m_pCharReq  = nullptr;
+    m_pCharRes  = nullptr;
+    m_pCharFFF2 = nullptr;
+    m_pCharFFF1 = nullptr;
+    m_pCharName = nullptr;
+    m_connected  = false;
     m_authorized = false;
 }
 
 SEM6000Status SEM6000Device::sendCommandAndWaitResponse(const uint8_t* cmdFrame, size_t cmdLen, uint16_t expectedCmd, SEMCmdType type, uint32_t timeoutMs) {
     if (!m_connected) return SEM_ERR_NOT_CONNECTED;
 
+    m_expectedCmd = 0;
     m_rxReady = false;
     m_rxLength = 0;
+    m_expectedCmd = expectedCmd;
 
     if (!m_pCharReq->writeValue(cmdFrame, cmdLen, false)) {
+        m_expectedCmd = 0;
         return SEM_ERR_BLE_WRITE_FAILED;
     }
 
     unsigned long start = millis();
     while (millis() - start < timeoutMs) {
         if (m_rxReady) {
+            m_expectedCmd = 0;
             m_rxReady = false;
 
             uint16_t receivedCmd = ((uint16_t)m_rxBuffer[2] << 8) | m_rxBuffer[3];
@@ -157,15 +209,23 @@ SEM6000Status SEM6000Device::sendCommandAndWaitResponse(const uint8_t* cmdFrame,
                 return (m_rxBuffer[4] == 0x00) ? SEM_OK : SEM_ERR_RESPONSE_REJECTED;
             } 
             else if (type == CMD_SET_3B) {
-                if (m_rxLength < 9) return SEM_ERR_NOTIFICATION;
-                return (m_rxBuffer[5] == 0x00) ? SEM_OK : SEM_ERR_RESPONSE_REJECTED;
+                // Polymorphisme bi-génération :
+                // - HW 2.0 : 9 octets (0F 05 0F 00 [SubCmd] [Status] [CS] FF FF -> statut en index 5)
+                // - HW 3.0 : 8 octets (0F 04 0F 00 [Status] [CS] FF FF          -> statut en index 4)
+                if (m_rxLength >= 9) {
+                    return (m_rxBuffer[5] == 0x00) ? SEM_OK : SEM_ERR_RESPONSE_REJECTED;
+                } else if (m_rxLength == 8) {
+                    return (m_rxBuffer[4] == 0x00) ? SEM_OK : SEM_ERR_RESPONSE_REJECTED;
+                }
+                return SEM_ERR_NOTIFICATION;
             } 
             else {
                 return SEM_OK;
             }
         }
-        delay(10);
+        delay(4);
     }
+    m_expectedCmd = 0;
     return SEM_ERR_TIMEOUT;
 }
 
@@ -347,25 +407,21 @@ SEM6000Status SEM6000Device::getTimerStatus(SEMTimerStatus& status) {
 
     if (res == SEM_OK && m_rxLength >= 18) {
         uint8_t action = m_rxBuffer[4];
-        if (action == 0x01 || action == 0x02) {
-            status.active       = true;
-            status.actionTurnOn = (action == 0x01);
-            status.targetSec    = m_rxBuffer[5];
-            status.targetMin    = m_rxBuffer[6];
-            status.targetHour   = m_rxBuffer[7];
-            status.targetDay    = m_rxBuffer[8];
-            status.targetMonth  = m_rxBuffer[9];
-            status.targetYear   = m_rxBuffer[10];
+        status.active       = (action == 0x01 || action == 0x02);
+        status.actionTurnOn = (action == 0x01);
 
-            uint8_t pHour = m_rxBuffer[11];
-            uint8_t pMin  = m_rxBuffer[12];
-            uint8_t pSec  = m_rxBuffer[13];
-            status.presetSeconds = (uint32_t)pHour * 3600 + (uint32_t)pMin * 60 + pSec;
-        } else {
-            status.active        = false;
-            status.actionTurnOn  = false;
-            status.presetSeconds = 0;
-        }
+        // Toujours extraire l'écho de la date cible en RAM (même si active == false, permet de lire la sentinelle 00/00/2048 sur HW 3.0)
+        status.targetSec    = m_rxBuffer[5];
+        status.targetMin    = m_rxBuffer[6];
+        status.targetHour   = m_rxBuffer[7];
+        status.targetDay    = m_rxBuffer[8];
+        status.targetMonth  = m_rxBuffer[9];
+        status.targetYear   = m_rxBuffer[10];
+
+        // Entier 24 bits Big-Endian en secondes : (B11 << 16) | (B12 << 8) | B13
+        status.presetSeconds = ((uint32_t)m_rxBuffer[11] << 16) |
+                               ((uint32_t)m_rxBuffer[12] << 8)  |
+                               (uint32_t)m_rxBuffer[13];
     } else {
         res = SEM_ERR_NOTIFICATION;
     }
@@ -465,6 +521,12 @@ SEM6000Status SEM6000Device::requestAllSchedulers(std::vector<SEMSchedulerSlot>&
 
     parseSchedulerBlocks(m_rxBuffer, m_rxLength, list);
 
+    // Sur HW 3.0 (MTU 160), la Page 0 renvoie l'intégralité des plannings (jusqu'à 12 slots, 152 octets)
+    // en une seule trame monolithique : ne pas paginer si tous les slots annoncés sont déjà extraits.
+    if (list.size() >= totalSchedulers) {
+        return SEM_OK;
+    }
+
     uint8_t totalPages = (totalSchedulers + 3) / 4;
 
     for (uint8_t page = 1; page < totalPages; page++) {
@@ -473,6 +535,9 @@ SEM6000Status SEM6000Device::requestAllSchedulers(std::vector<SEMSchedulerSlot>&
         st = requestSchedulerPage(page, dummyTotal);
         if (st == SEM_OK) {
             parseSchedulerBlocks(m_rxBuffer, m_rxLength, list);
+            if (list.size() >= totalSchedulers) {
+                break;
+            }
         } else {
             return st;
         }
@@ -716,6 +781,7 @@ SEM6000Status SEM6000Device::setDeviceName(const String& name) {
 
 SEM6000Status SEM6000Device::getSerialNumber(String& serial) {
     if (!m_authorized) return SEM_ERR_AUTH_FAILED;
+    if (isHardwareV3()) return SEM_ERR_NOT_SUPPORTED;
 
     uint8_t frame[] = { 0x0F, 0x05, 0x11, 0x00, 0x00, 0x00, 0x12, 0xFF, 0xFF };
     SEM6000Status st = sendCommandAndWaitResponse(frame, sizeof(frame), 0x1100, CMD_GET);
@@ -747,16 +813,45 @@ bool SEM6000Device::readRawFFF2(uint16_t& word0, uint8_t& currentByte, float& cu
     return false;
 }
 
-SEM6000Status SEM6000Device::checkAndFixClockLoss(uint8_t sec, uint8_t min, uint8_t hour, uint8_t day, uint8_t month, uint16_t year) {
-    uint16_t word0 = 0;
-    uint8_t b2 = 0;
-    float currentA = 0.0f;
+SEM6000Status SEM6000Device::checkAndFixClockLoss(uint8_t sec, uint8_t min, uint8_t hour, uint8_t day, uint8_t month, uint16_t year, bool* outClockLossDetected) {
+    if (outClockLossDetected) *outClockLossDetected = false;
 
-    if (readRawFFF2(word0, b2, currentA)) {
-        if (word0 == 0xFFFF) {
-            Serial.println("[SEM6000] AMNÉSIE HORLOGE DÉTECTÉE SUR FFF2 ! AUTO-CORRECTION...");
-            return setDateTime(sec, min, hour, day, month, year);
+    // 1. Hardware 2.0 (caractéristique 0xFFF2 présente) : détection via sentinelle Word0 == 0xFFFF
+    if (hasCharacteristicFFF2()) {
+        uint16_t word0 = 0;
+        uint8_t b2 = 0;
+        float currentA = 0.0f;
+
+        if (readRawFFF2(word0, b2, currentA)) {
+            if (word0 == 0xFFFF) {
+                if (outClockLossDetected) *outClockLossDetected = true;
+                Serial.println("[SEM6000][HW2.0] AMNÉSIE HORLOGE DÉTECTÉE SUR FFF2 (0xFFFF) ! AUTO-CORRECTION...");
+                return setDateTime(sec, min, hour, day, month, year);
+            }
         }
+        return SEM_OK;
     }
+
+    // 2. Hardware 3.0 (sans 0xFFF2) : détection en 1 requête GET via la sentinelle RAM de 0x0900 (targetDay==0 && targetMonth==0)
+    if (isHardwareV3()) {
+        if (!m_authorized) return SEM_ERR_AUTH_FAILED;
+
+        SEMTimerStatus timerSt;
+        SEM6000Status st = getTimerStatus(timerSt);
+        if (st != SEM_OK) return st;
+
+        if (timerSt.targetDay == 0 && timerSt.targetMonth == 0) {
+            if (outClockLossDetected) *outClockLossDetected = true;
+            Serial.println("[SEM6000][HW3.0] COUPURE SECTEUR DÉTECTÉE SUR 0x0900 (00/00/2048 -> RTC figée au 01/01/2020) ! AUTO-CORRECTION...");
+            st = setDateTime(sec, min, hour, day, month, year);
+            if (st != SEM_OK) return st;
+
+            // Réarmement furtif de la sentinelle RAM dans 0x0900 (remplace 00 00 30 par day/month/year avec timer INACTIF)
+            setTimerAbs(true, 59, 59, 23, day, month, year);
+            stopTimer();
+        }
+        return SEM_OK;
+    }
+
     return SEM_OK;
 }

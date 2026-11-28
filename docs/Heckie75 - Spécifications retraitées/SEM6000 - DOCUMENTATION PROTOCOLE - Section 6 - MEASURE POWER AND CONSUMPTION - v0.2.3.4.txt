@@ -1,0 +1,373 @@
+SEM6000 - DOCUMENTATION PROTOCOLE
+SECTION 6 : MEASURE POWER AND CONSUMPTION
+Version : 0.2.3.4 (Alignement Bi-Génération Hardware 2.0 / FW 1.24 & Hardware 3.0 / FW 1.30)
+
+Source : API.md & Rétro-ingénierie expérimentale (exp_02 à exp_23)
+
+============================================================
+1. PRÉSENTATION GÉNÉRALE
+============================================================
+
+Cette section couvre :
+
+- Lecture rapide non authentifiée de la caractéristique 0xFFF2 (Hardware 2.0 uniquement)
+- Capture instantanée des mesures électriques (0x0400)
+- Lecture des historiques de consommation 24h (0x0A00), 30 jours (0x0B00) et 12 mois (0x0C00)
+- Réinitialisation des données stockées (0x0F0002 Reset Conso & 0x0F0000 Factory Reset)
+
+Caractéristiques et Commandes utilisées :
+
+Char 0xFFF2 = Lecture directe 4 octets sans authentification (Seuil I_max / Sentinelle 0xFFFF + Courant mA — HW 2.0 uniquement)
+Cmd  0x0400 = Capture Measurement (19 octets fixes sans FFFF final sur HW 2.0 et HW 3.0)
+Cmd  0x0A00 = Day History (24 dernières heures, 55 octets)
+Cmd  0x0B00 = Month History (30 derniers jours, 127 octets)
+Cmd  0x0C00 = Year History (12 derniers mois, 55 octets)
+Cmd  0x0F00 = Reset Data (0x0F0000 = Factory Reset, 0x0F0002 = Reset Consumption Data)
+
+
+============================================================
+1-BIS. CARACTÉRISTIQUE RAPIDE 0xFFF2 (HARDWARE 2.0 UNIQUEMENT - exp_04, exp_06, exp_12, exp_16)
+============================================================
+
+OBJECTIF
+
+Accessible en lecture GATT directe (READ) SANS authentification PIN sur Hardware 2.0 (FW 1.24).
+ATTENTION : Cette caractéristique a été supprimée de la table GATT sur Hardware 3.0 (FW 1.30).
+Son absence lors de la découverte du service 0xFFF0 permet au pilote d'identifier immédiatement
+une prise Hardware 3.0 (isHardwareV3() == true).
+
+RÉPONSE (4 OCTETS BRUTS : Word0 + Word1 en Big-Endian)
+
+Exemple 1 (Régime nominal sur Théoule HW 2.0, P_max = 3680 W, U = 221 V, I = 12 mA) :
+41 0B 00 0C
+
+Exemple 2 (État d'amnésie d'horloge après coupure secteur sur Théoule HW 2.0, I = 2275 mA) :
+FF FF 08 E3
+
+Décodage :
+
+Octets 1-2   : Word0 (uint16_t Big-Endian) :
+               - En régime nominal : Seuil de courant maximal admissible I_max en milliampères (mA),
+                 recalculé dynamiquement par la prise selon I_max (mA) = (P_max (W) / U (V)) * 1000
+                 (ex. 0x410B = 16 651 mA pour 3680 W sous 221 V ; 0x14C6 = 5 318 mA pour 1234 W sous 232 V).
+               - Après une coupure secteur (>= 30 s) : prend la valeur sentinelle 0xFFFF (65 535) tant
+                 qu'une commande Synchronize Datetime (0x0100) n'a pas été reçue.
+               - Note : lors d'une disjonction par surcharge (I_mesuré > I_max), Word0 ne passe PAS à 0xFFFF.
+Octets 3-4   : Word1 (uint16_t Big-Endian) :
+               - Courant actif instantané mesuré I_mesuré en milliampères (mA) (ex. 0x08E3 = 2 275 mA).
+
+NIVEAU DE CONFIANCE : 100 %
+
+
+============================================================
+2. CAPTURE MEASUREMENT (0x0400)
+============================================================
+
+OBJECTIF
+
+Lire les mesures électriques temps réel du SEM6000 :
+- État du relais (ON/OFF)
+- Puissance active (en mW)
+- Tension efficace (en V)
+- Courant efficace (en mA)
+- Fréquence secteur (en Hz)
+- Mot d'état matériel (Octets 13-14 : 0x0000 sur HW 2.0, 0x0100 sur HW 3.0)
+- Consommation totale cumulée en Flash (en Wh, active uniquement sur HW 3.0)
+
+============================================================
+TRAME DE REQUÊTE (9 OCTETS)
+============================================================
+
+Valeur :
+
+0F 05 04 00 00 00 05 FF FF
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 05        : longueur de la payload incluant la checksum
+Octets 3-4   : 0400      : commande Capture Measurement
+Octets 5-6   : 0000      : valeur fixe
+Octet 7      : 05        : checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 8-9   : FFFF      : séquence de fin statique
+
+============================================================
+NOTIFICATION DE RÉPONSE - HARDWARE 2.0 (19 OCTETS FIXES SANS FFFF)
+============================================================
+
+Valeur :
+
+0F 11 04 00 01 00 00 00 EB 00 0C 32 00 00 00 00 00 00 2F
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 11        : longueur (0x11 = 17 octets après cet octet -> 19 octets au total)
+Octets 3-4   : 0400      : commande Capture Measurement
+Octet 5      : 01        : État du relais (00 = OFF, 01 = ON)
+Octets 6-8   : 000000    : Puissance active en mW (24 bits Big-Endian -> diviser par 1000.0 pour obtenir des Watts)
+Octet 9      : EB        : Tension secteur en Volts (0xEB = 235 V)
+Octets 10-11 : 000C      : Courant en mA (16 bits Big-Endian -> 12 mA = 0.012 A)
+Octet 12     : 32        : Fréquence en Hz (0x32 = 50 Hz)
+Octets 13-14 : 0000      : Mot fixe invariant = 0x0000 sur Hardware 2.0 (demeure à 0000 à vide, en charge,
+                           en approche de surcharge et après disjonction matérielle - prouvé par exp_12)
+Octets 15-18 : 00000000  : Total Consumption (uint32_t Big-Endian) -> Toujours 0x00000000 sur Hardware 2.0
+Octet 19     : 2F        : checksum -> 1 + somme des octets 3 à 18 inclus
+
+ATTENTION : La notification 0x0400 fait toujours exactement 19 octets et ne comporte PAS de séquence FFFF finale.
+
+============================================================
+NOTIFICATION DE RÉPONSE - HARDWARE 3.0 (19 OCTETS FIXES SANS FFFF - exp_15 à exp_23)
+============================================================
+
+Valeur (Capture réelle sur Vélo HW 3.0 / FW 1.30 - exp_23) :
+
+0F 11 04 00 01 00 02 F8 DE 00 00 32 01 00 00 00 85 26 2F
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 11        : longueur (0x11 = 17 octets après cet octet -> 19 octets au total, identique à HW 2.0 !)
+Octets 3-4   : 0400      : commande Capture Measurement
+Octet 5      : 01        : État du relais (00 = OFF, 01 = ON)
+Octets 6-8   : 0002F8    : Puissance active en mW (0x0002F8 = 760 mW = 0.76 W)
+Octet 9      : DE        : Tension secteur en Volts (0xDE = 222 V)
+Octets 10-11 : 0000      : Courant en mA (0 mA)
+Octet 12     : 32        : Fréquence en Hz (0x32 = 50 Hz)
+Octets 13-14 : 0100      : Mot fixe invariant = 0x0100 sur Hardware 3.0 (y compris après coupure secteur - exp_22)
+Octets 15-18 : 00008526  : Consommation totale cumulée en Wh (uint32_t Big-Endian -> 0x00008526 = 34 086 Wh)
+Octet 19     : 2F        : checksum -> 1 + somme des octets 3 à 18 inclus
+
+ATTENTION — Cinématique de mise à jour de totalKwhWh (Octets 15-18) sur Hardware 3.0 (exp_17, exp_21, exp_22) :
+- Contrairement à l'historique horaire H[23] (0x0A00) qui s'incrémente en RAM à chaque +1 Wh, le compteur
+  totalKwhWh (Octets 15-18 de 0x0400) est stocké en mémoire Flash et n'est incrémenté qu'UNE SEULE FOIS PAR HEURE
+  au franchissement exact de l'heure pile (HH:00:00) par addition de l'heure qui vient de se fermer :
+  totalKwhWh += H_fermée.
+- Conséquence en cas de coupure secteur en milieu d'heure (exp_22) : l'énergie de l'heure en cours H[23]
+  (en RAM) est perdue côté prise sans avoir été versée dans totalKwhWh, et le comptage reste bloqué tant
+  que la prise (dont la RTC est figée au 01/01/2020 00:00:00) n'a pas été remise à l'heure via 0x0100.
+
+NIVEAU DE CONFIANCE : 100 %
+
+
+============================================================
+3. REQUEST MEASUREMENTS (HISTORIQUES 0x0A00, 0x0B00, 0x0C00)
+============================================================
+
+OBJECTIF
+
+Lire les trois registres d'historiques glissants de consommation :
+- 0A00 = Day History   : 24 dernières heures (24 slots x 2 octets = 48 octets utiles, trame de 55 octets)
+- 0B00 = Month History : 30 derniers jours   (30 slots x 4 octets = 120 octets utiles, trame de 127 octets)
+- 0C00 = Year History  : 12 derniers mois    (12 slots x 4 octets = 48 octets utiles, trame de 55 octets)
+
+INDEXATION CHRONOLOGIQUE UNIVERSELLE
+
+Dans les trois tableaux, le dernier slot à droite représente toujours la période en cours (Présent),
+et décrémenter l'index de k permet de remonter de k périodes dans le passé :
+- 0x0A00 (hourlyWh[0..23])  : Slot[23] = Heure en cours (H)   | Slot[22] = H-1  | ... | Slot[0] = H-23
+- 0x0B00 (dailyWh[0..29])   : Slot[29] = Jour en cours (J)    | Slot[28] = Hier | ... | Slot[0] = J-29
+- 0x0C00 (monthlyWh[0..11]) : Slot[11] = Mois en cours (M)    | Slot[10] = M-1  | ... | Slot[0] = M-11
+
+ENCODAGE DES SLOTS ET DU RATIO D'HEURES CREUSES (B3 - exp_08 & exp_09)
+
+- Format Horaire 24h (0x0A00) : Blocs de 2 octets [B0 B1] (uint16_t Big-Endian) = Énergie de l'heure en Wh.
+- Format Journalier 30j (0x0B00) & Mensuel 12m (0x0C00) : Blocs de 4 octets [B0 B1 B2 B3] :
+  * B0..B2 (24 bits Big-Endian) = Énergie totale de la période (jour ou mois) en Wh :
+    E_total = (B0 << 16) | (B1 << 8) | B2
+  * B3 (uint8_t, 0 à 100) = Pourcentage exact (0 % à 100 %) de l'énergie de la période consommé
+    pendant le créneau d'Heures Creuses (HC).
+
+DIFFÉRENCE DE CINÉMATIQUE DE MISE À JOUR : HARDWARE 2.0 vs HARDWARE 3.0 (exp_03, exp_17, exp_21)
+
+- Sur Hardware 2.0 / Firmware 1.24 :
+  * Slot[23] (0x0A00) s'incrémente en temps réel (+1 Wh en RAM).
+  * Slot[29] (0x0B00) et Slot[11] (0x0C00) ne sont mis à jour qu'à chaque heure pile (HH:00:00).
+- Sur Hardware 3.0 / Firmware 1.30 :
+  * Loi d'intégration temps réel au quantum +1 Wh : dès que +1 Wh est franchi, Slot[23] (0x0A00),
+    Slot[29] (0x0B00) et Slot[11] (0x0C00) sont incrémentés SIMULTANÉMENT en temps réel !
+  * Corollaire anti-double comptage : sur HW 3.0, le jour en cours Slot[29] et le mois en cours Slot[11]
+    incluent déjà à chaque instant la consommation de l'heure en cours Slot[23].
+
+DIFFÉRENCE DE TRANSPORT BLE (FRAGMENTATION MTU 23 vs PAQUET ATOMIQUE MTU 160) & CHECKSUMS (exp_16 à exp_22)
+
+- Sur Hardware 2.0 (MTU = 23) :
+  * 0x0A00 (55 o) arrive en 3 notifications BLE (20 + 20 + 15 octets).
+  * 0x0B00 (127 o) arrive en 7 notifications BLE (6 x 20 + 7 octets).
+  * 0x0C00 (55 o) arrive en 3 notifications BLE (20 + 20 + 15 octets).
+  * La checksum standard (1 + somme des octets 3 à N-3) & 0xFF est 100 % exacte sur les 3 commandes.
+- Sur Hardware 3.0 (MTU = 160) :
+  * Chaque historique (55 o ou 127 o) est reçu en 1 SEULE notification BLE atomique complète, toujours
+    terminée par [Checksum] FF FF !
+  * Particularités du calcul interne de checksum dans le Firmware 1.30 (exp_18 à exp_22) :
+    - 0x0B00 (30j, 127 o) : Checksum conforme à la formule standard sur les jours récents (Slot[26..29]).
+    - 0x0A00 (24h, 55 o)  : La boucle interne de checksum du FW 1.30 omet les premiers slots à gauche
+      (Slot[00..04]) lorsqu'ils contiennent des Wh non nuls (écart = somme des octets de ces premiers slots).
+    - 0x0C00 (12m, 55 o)  : Le FW 1.30 calcule la checksum sur sa structure interne incluant la date RTC
+      (écart constant tout au long d'une même journée calendaire, mais variant lorsque la date change).
+    - Sur HW 3.0, chaque trame arrivant en 1 paquet BLE unique protégé par le CRC-24 matériel du Link Layer
+      BLE, la validation s'effectue sur l'intégrité structurelle stricte (Octet 1 == 0x0F, Longueur ==
+      Octet 2 + 4 == 55 ou 127, et 2 derniers octets == FF FF).
+
+============================================================
+TRAME DE REQUÊTE (9 OCTETS)
+============================================================
+
+Valeur (Exemple pour 0x0B00 - Month History) :
+0F 05 0B 00 00 00 0C FF FF
+
+(Pour 0x0A00 Day History  : 0F 05 0A 00 00 00 0B FF FF)
+(Pour 0x0C00 Year History : 0F 05 0C 00 00 00 0D FF FF)
+
+Décodage :
+
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 05        : longueur de la payload incluant la checksum
+Octets 3-4   : 0B00      : commande Request Measurements (0A00 = 24h, 0B00 = 30j, 0C00 = 12m)
+Octets 5-6   : 0000      : valeur fixe
+Octet 7      : 0C        : checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 8-9   : FFFF      : séquence de fin statique
+
+============================================================
+3.1. REQUEST YEAR HISTORY (0x0C00 - 12 DERNIERS MOIS - 55 OCTETS AU TOTAL)
+============================================================
+
+Structure de la trame complète de 55 octets (reçue en 3 notifications sur HW 2.0, ou en 1 seule sur HW 3.0) :
+
+0F 33 0C 00 [Slot 0 : M-11 (4o)] [Slot 1 : M-10 (4o)] ... [Slot 10 : M-1 (4o)] [Slot 11 : Mois courant (4o)] [CS] FF FF
+
+Décodage :
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 33        : longueur de la payload incluant la checksum (0x33 = 51 -> 55 octets au total)
+Octets 3-4   : 0C00      : commande Request Year History
+Octets 5-8   : B0..B2 B3 : Slot[0]  (M-11 : 11 mois avant le mois courant) -> 24 bits Wh + 8 bits % HC
+Octets 9-12  : B0..B2 B3 : Slot[1]  (M-10 : 10 mois avant le mois courant)
+...
+Octets 45-48 : B0..B2 B3 : Slot[10] (M-1  : mois précédent le mois courant)
+Octets 49-52 : B0..B2 B3 : Slot[11] (M    : mois courant)
+Octet 53     : CS        : checksum -> 1 + somme des octets 3 à 52 inclus (biais date RTC sur HW 3.0 / FW 1.30)
+Octets 54-55 : FFFF      : séquence de fin statique
+
+============================================================
+3.2. REQUEST MONTH HISTORY (0x0B00 - 30 DERNIERS JOURS - 127 OCTETS AU TOTAL)
+============================================================
+
+Structure de la trame complète de 127 octets (reçue en 7 notifications sur HW 2.0, ou en 1 seule sur HW 3.0) :
+
+0F 7B 0B 00 [Slot 0 : J-29 (4o)] [Slot 1 : J-28 (4o)] ... [Slot 28 : Hier (4o)] [Slot 29 : Jour courant (4o)] [CS] FF FF
+
+Décodage :
+Octet 1       : 0F       : séquence de début statique
+Octet 2       : 7B       : longueur de la payload incluant la checksum (0x7B = 123 -> 127 octets au total)
+Octets 3-4    : 0B00     : commande Request Month History
+Octets 5-8    : B0..B2 B3: Slot[0]  (J-29 : 29 jours avant le jour courant) -> 24 bits Wh + 8 bits % HC
+...
+Octets 117-120: B0..B2 B3: Slot[28] (J-1  : hier)
+Octets 121-124: B0..B2 B3: Slot[29] (J    : jour courant)
+Octet 125     : CS       : checksum -> 1 + somme des octets 3 à 124 inclus
+Octets 126-127: FFFF     : séquence de fin statique
+
+============================================================
+3.3. REQUEST DAY HISTORY (0x0A00 - 24 DERNIÈRES HEURES - 55 OCTETS AU TOTAL)
+============================================================
+
+Structure de la trame complète de 55 octets (reçue en 3 notifications sur HW 2.0, ou en 1 seule sur HW 3.0) :
+
+0F 33 0A 00 [Slot 0 : H-23 (2o)] [Slot 1 : H-22 (2o)] ... [Slot 22 : H-1 (2o)] [Slot 23 : Heure courante (2o)] [CS] FF FF
+
+Décodage :
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 33        : longueur de la payload incluant la checksum (0x33 = 51 -> 55 octets au total)
+Octets 3-4   : 0A00      : commande Request Day History
+Octets 5-6   : B0 B1     : Slot[0]  (H-23 : 23 heures avant l'heure courante) -> uint16_t Big-Endian en Wh
+Octets 7-8   : B0 B1     : Slot[1]  (H-22 : 22 heures avant l'heure courante)
+...
+Octets 49-50 : B0 B1     : Slot[22] (H-1  : heure précédant l'heure courante)
+Octets 51-52 : B0 B1     : Slot[23] (H    : heure courante en cours d'accumulation en RAM)
+Octet 53     : CS        : checksum -> 1 + somme des octets 3 à 52 inclus (omission des premiers slots sur HW 3.0)
+Octets 54-55 : FFFF      : séquence de fin statique
+
+
+============================================================
+4. RESET DATA (0x0F0002 RESET CONSO & 0x0F0000 FACTORY RESET - exp_13, exp_16)
+============================================================
+
+OBJECTIF
+
+Réinitialiser soit uniquement les données de consommation (0x0F0002), soit l'intégralité
+de la prise en configuration d'usine (0x0F0000).
+
+PÉRIMÈTRES D'ACTION EXACTS (VALIDÉS PAR exp_13)
+
+- Type 0x02 (Reset Consumption Data - 0x0F0002) :
+  Efface exclusivement les historiques d'énergie (24h, 30j, 12m remis à 0 Wh).
+  Préserve à 100 % le nom GATT, le code PIN, le seuil P_max, les tarifs HP/HC, les heures creuses,
+  l'anneau LED, les 12 Schedulers et le Random Mode.
+- Type 0x00 (Factory Reset - 0x0F0000) :
+  Restaure toute la configuration d'usine : Nom = "Voltcraft", Relais = ON, P_max = 3680 W,
+  Tarif Normal = 200 c, Tarif Réduit = 100 c, Période HC = OFF (00:00->00:00), LED = ON,
+  Schedulers = 0 (table purgée), Historiques = 0 Wh, Code PIN = 0000 (0x00000000).
+
+============================================================
+TRAME DE REQUÊTE (13 OCTETS)
+============================================================
+
+Valeur (Factory Reset - 0x0F0000) :
+0F 09 0F 00 00 00 00 00 00 00 10 FF FF
+
+Valeur (Reset Consumption Data - 0x0F0002) :
+0F 09 0F 00 02 00 00 00 00 00 12 FF FF
+
+Décodage :
+
+Octet 1      : 0F         : séquence de début statique
+Octet 2      : 09         : longueur de la payload incluant la checksum (9 octets -> 13 octets au total)
+Octets 3-4   : 0F00       : famille de commandes 0x0F00 (CMD_SET_3B)
+Octet 5      : 00 ou 02   : Sous-commande (00 = Factory Reset, 02 = Reset Consumption Data)
+Octets 6-10  : 0000000000 : valeur fixe (5 octets à 0x00)
+Octet 11     : 10 ou 12   : checksum -> 1 + somme des octets 3 à 10 inclus
+Octets 12-13 : FFFF       : séquence de fin statique
+
+============================================================
+NOTIFICATION DE RÉPONSE (POLYMORPHISME HW 2.0 vs HW 3.0 - exp_13, exp_16, exp_23)
+============================================================
+
+ATTENTION : Comme pour toutes les sous-commandes de la famille 0x0F00 (0x0F0000 Factory Reset,
+0x0F0001 Période HC, 0x0F0002 Reset Conso, 0x0F0004 Prix, 0x0F0005 LED Ring), la taille de
+la notification d'acquittement diffère d'un octet entre Hardware 2.0 et Hardware 3.0 :
+
+1. Sur Hardware 2.0 / Firmware 1.24 (9 octets — Statut en Octet 6 / index C 5) :
+
+Valeur (pour 0x0F0002 Reset Consumption Data) :
+0F 05 0F 00 02 00 12 FF FF
+
+Décodage (HW 2.0) :
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 05        : longueur de la payload incluant la checksum (5 octets -> 9 octets au total)
+Octets 3-4   : 0F00      : famille de commandes 0x0F00
+Octet 5      : 02        : écho de la sous-commande (00 = Factory Reset, 02 = Reset Conso, 05 = LED...)
+Octet 6      : 00        : résultat / statut d'exécution (00 = succès, 01 = échec)
+Octet 7      : 12        : checksum -> 1 + somme des octets 3 à 6 inclus
+Octets 8-9   : FFFF      : séquence de fin statique
+
+2. Sur Hardware 3.0 / Firmware 1.30 (8 octets — Statut en Octet 5 / index C 4) :
+
+Valeur (pour toute sous-commande 0x0F00xx sur HW 3.0) :
+0F 04 0F 00 00 10 FF FF
+
+Décodage (HW 3.0) :
+Octet 1      : 0F        : séquence de début statique
+Octet 2      : 04        : longueur de la payload incluant la checksum (4 octets -> 8 octets au total)
+Octets 3-4   : 0F00      : famille de commandes 0x0F00 (sans écho de la sous-commande)
+Octet 5      : 00        : résultat / statut d'exécution (00 = succès, 01 = échec)
+Octet 6      : 10        : checksum -> 1 + somme des octets 3 à 5 inclus
+Octets 7-8   : FFFF      : séquence de fin statique
+
+NIVEAU DE CONFIANCE
+
+100 % (Validé sur banc matériel réel HW 2.0 / FW 1.24 et HW 3.0 / FW 1.30).
+
+============================================================
+FIN DU FICHIER 6
+SECTION MEASURE POWER AND CONSUMPTION (Version 0.2.3.4)
+============================================================

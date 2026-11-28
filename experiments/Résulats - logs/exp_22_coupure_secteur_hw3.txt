@@ -1,0 +1,296 @@
+########################################################################################################################
+ ⚡ EXPÉRIENCE 22 (v2) : COUPURE SECTEUR + REMISE À L'HEURE (+30s) SUR VÉLO HW 3.0 (a3:00:00:00:45:25)
+########################################################################################################################
+  [BLE] Tentative de connexion #1 à Vélo (a3:00:00:00:45:25)...
+  [BLE] Tentative de connexion #2 à Vélo (a3:00:00:00:45:25)...
+  [BLE] Tentative de connexion #3 à Vélo (a3:00:00:00:45:25)...
+  ✅ Connecté | MTU = 160 octets | RSSI = -79 dBm
+  🔹 GAP Device Name (0x2A00) : "Wattmètre mobile"
+  🔑 Authentification 32 bits (0x1700) :
+     📤 TX 0x1700 ( 16 octets) : 0F 0C 17 00 00 00 00 00 00 00 00 00 00 18 FF FF 
+     📥 RX 0x1700 ( 10 octets) : 0F 06 17 00 00 00 00 18 FF FF 
+     📤 TX 0x0300 ( 10 octets) : 0F 06 03 00 01 00 00 05 FF FF 
+     📥 RX 0x0300 (  8 octets) : 0F 04 03 00 00 04 FF FF 
+
+========================================================================================================================
+ 📸 CLICHÉ #0 : État Initial avant calage 16:15:00
+========================================================================================================================
+  🔹 0xFFF1 (Avant Auth) : 56 4F 4C 43 46 54 04 00 00 00 00 01 1E 03 00 
+  🔹 0xFFF1 (Après Auth) : 56 4F 4C 43 46 54 04 00 00 00 00 01 1E 03 00 
+
+  --- [1. Télémétrie Live 0x0400] ---
+     📤 TX 0x0400 (  9 octets) : 0F 05 04 00 00 00 05 FF FF 
+     📥 RX 0x0400 ( 19 octets) : 0F 0F 04 00 01 0D CE 82 E5 10 63 31 01 00 00 00 85 1B 8D 
+     -> Relais=ON | P=904.83 W | U=229 V | I=4.195 A | F=49 Hz | Octets[12..13]=0x0100 | totalKwhWh=34075 Wh | CS(Exp/Got)=0x8D/0x8D
+
+  --- [2. Paramètres 0x1000 (requestSettings)] ---
+     📤 TX 0x1000 (  9 octets) : 0F 05 10 00 00 00 11 FF FF 
+     📥 RX 0x1000 ( 20 octets) : 0F 0E 10 00 01 12 0D 05 28 01 68 01 00 0E 60 36 FF FF 00 00 
+
+  --- [3. Statut Timer à Froid 0x0900 (SANS armement préalable)] ---
+     📤 TX 0x0900 (  9 octets) : 0F 05 09 00 00 00 0A FF FF 
+     📥 RX 0x0900 ( 18 octets) : 0F 0E 09 00 00 3B 3B 17 1F 0C 1A 00 00 00 00 DC FF FF 
+     -> Action=0x00 | Écho Cible en mémoire=31/12/2026 23:59:59 | presetSeconds24b=0 s
+
+  --- [3bis. Plannings 0x1400 (Page 0) & Mode Aléatoire 0x1600] ---
+     📤 TX 0x1400 ( 10 octets) : 0F 06 14 00 00 00 00 15 FF FF 
+     📥 RX 0x1400 (  8 octets) : 0F 04 14 00 00 15 FF FF 
+     📤 TX 0x1600 (  9 octets) : 0F 05 16 00 00 00 17 FF FF 
+     📥 RX 0x1600 ( 15 octets) : 0F 0B 16 00 00 FF 14 00 08 00 00 00 32 FF FF 
+
+  --- [4. Historique Horaire 24 Heures (0x0A00)] ---
+     📤 TX 0x0A00 (  9 octets) : 0F 05 0A 00 00 00 0B FF FF 
+     📥 RX 0x0A00 ( 55 octets) : 0F 33 0A 00 00 06 00 0A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 0B 16 FF FF 
+     -> Cumul=  27 Wh | H[21..23]=0/0/11 | CS_Exp=0x26 | CS_Got=0x16 | Écart(Exp-Got)=0x10 ( 16) | Slots>0: [00]=6 [01]=10 [23]=11 
+
+  --- [5. Historique Journalier 30 Jours (0x0B00)] ---
+     📤 TX 0x0B00 (  9 octets) : 0F 05 0B 00 00 00 0C FF FF 
+     📥 RX 0x0B00 (127 octets) : 0F 7B 0B 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 2D 00 00 00 41 56 00 00 06 64 00 00 0B 00 45 FF FF 
+     -> Cumul= 127 Wh | J[27..29]=65/6/11 | CS_Exp=0x45 | CS_Got=0x45 | Écart(Exp-Got)=0x00 (  0) | Slots>0: [26]=45 [27]=65 [28]=6 [29]=11 
+
+  --- [6. Historique Mensuel 12 Mois (0x0C00)] ---
+     📤 TX 0x0C00 (  9 octets) : 0F 05 0C 00 00 00 0D FF FF 
+     📥 RX 0x0C00 ( 55 octets) : 0F 33 0C 00 00 01 CA 01 00 01 8F 00 00 00 00 00 00 01 4D 02 00 01 EE 02 00 02 40 03 00 02 27 01 00 03 73 00 00 01 01 00 00 01 3F 01 00 00 74 34 00 00 7F 30 63 FF FF 
+     -> Cumul=4513 Wh | M[10..11]=116(52%)/127(48%) | CS_Exp=0x29 | CS_Got=0x63 | Écart(Exp-Got)=0xC6 (198) | Slots>0: [00]=458(1%) [01]=399(0%) [03]=333(2%) [04]=494(2%) [05]=576(3%) [06]=551(1%) [07]=883(0%) [08]=257(0%) [09]=319(1%) [10]=116(52%) [11]=127(48%) 
+
+  --- [7. Sonde Timer Fantôme (0x0800 / 0x0900) pour lecture de la RTC interne] ---
+
+  🕵️‍♂️ [SONDE CIBLE 31/12/2026] Cible Timer = 31/12/2026 à 23:59:59
+     📤 TX 0x0800 ( 16 octets) : 0F 0C 08 00 01 3B 3B 17 1F 0C 1A 00 00 DC FF FF 
+     📥 RX 0x0800 (  8 octets) : 0F 04 08 00 00 09 FF FF 
+     📤 TX 0x0900 (  9 octets) : 0F 05 09 00 00 00 0A FF FF 
+     📥 RX 0x0900 ( 18 octets) : 0F 0E 09 00 01 3B 3B 17 1F 0C 1A 2D 3A 90 00 D4 FF FF 
+     📤 TX 0x0800 ( 16 octets) : 0F 0C 08 00 00 00 00 00 00 00 00 00 00 09 FF FF 
+     📥 RX 0x0800 (  8 octets) : 0F 04 08 00 00 09 FF FF 
+     ⏰ RTC DÉDUITE : 27/11/2026 16:38:07 (Δt=0x2D3A90 = 2964112 s)
+
+  🕵️‍♂️ [SONDE DIRECTE CIBLE 02/01/2020 (Vérif RTC=01/01/2020)] Cible Timer = 02/01/2020 à 23:59:59
+     📤 TX 0x0800 ( 16 octets) : 0F 0C 08 00 01 3B 3B 17 02 01 14 00 00 AE FF FF 
+     📥 RX 0x0800 (  8 octets) : 0F 04 08 00 00 09 FF FF 
+     📤 TX 0x0900 (  9 octets) : 0F 05 09 00 00 00 0A FF FF 
+     📥 RX 0x0900 ( 18 octets) : 0F 0E 09 00 01 3B 3B 17 02 01 14 04 D2 0F 00 94 FF FF 
+     📤 TX 0x0800 ( 16 octets) : 0F 0C 08 00 00 00 00 00 00 00 00 00 00 09 FF FF 
+     📥 RX 0x0800 (  8 octets) : 0F 04 08 00 00 09 FF FF 
+     ⏰ RTC DÉDUITE : 30/12/2019 08:14:40 (Δt=0x04D20F = 315919 s)
+
+  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  🛠️ [CALAGE HORLOGE AVANT COUPURE] Injection setDateTime(28/11/2026 16:15:00) + Attente 15s sous charge...
+     📤 TX 0x0100 ( 16 octets) : 0F 0C 01 00 00 0F 10 1C 0B 07 EA 00 00 39 FF FF 
+     📥 RX 0x0100 (  8 octets) : 0F 04 01 00 00 02 FF FF 
+     [+ 5s] P=907.4 W | 0400_totalKwhWh=34075 Wh
+     [+10s] P=894.0 W | 0400_totalKwhWh=34075 Wh
+     [+15s] P=897.0 W | 0400_totalKwhWh=34075 Wh
+
+========================================================================================================================
+ 📸 CLICHÉ #1 : Référence AVANT Coupure Secteur (~16:15:15)
+========================================================================================================================
+  🔹 0xFFF1 (Avant Auth) : 56 4F 4C 43 46 54 04 00 00 00 00 01 1E 03 00 
+  🔹 0xFFF1 (Après Auth) : 56 4F 4C 43 46 54 04 00 00 00 00 01 1E 03 00 
+
+  --- [1. Télémétrie Live 0x0400] ---
+     📤 TX 0x0400 (  9 octets) : 0F 05 04 00 00 00 05 FF FF 
+     📥 RX 0x0400 ( 19 octets) : 0F 0F 04 00 01 0D B0 0D E4 10 5C 31 01 00 00 00 85 1B F2 
+     -> Relais=ON | P=897.04 W | U=228 V | I=4.188 A | F=49 Hz | Octets[12..13]=0x0100 | totalKwhWh=34075 Wh | CS(Exp/Got)=0xF2/0xF2
+
+  --- [2. Paramètres 0x1000 (requestSettings)] ---
+     📤 TX 0x1000 (  9 octets) : 0F 05 10 00 00 00 11 FF FF 
+     📥 RX 0x1000 ( 20 octets) : 0F 0E 10 00 01 12 0D 05 28 01 68 01 00 0E 60 36 FF FF 00 00 
+
+  --- [3. Statut Timer à Froid 0x0900 (SANS armement préalable)] ---
+     📤 TX 0x0900 (  9 octets) : 0F 05 09 00 00 00 0A FF FF 
+     📥 RX 0x0900 ( 18 octets) : 0F 0E 09 00 00 3B 3B 17 02 01 14 00 00 00 00 AE FF FF 
+     -> Action=0x00 | Écho Cible en mémoire=02/01/2020 23:59:59 | presetSeconds24b=0 s
+
+  --- [3bis. Plannings 0x1400 (Page 0) & Mode Aléatoire 0x1600] ---
+     📤 TX 0x1400 ( 10 octets) : 0F 06 14 00 00 00 00 15 FF FF 
+     📥 RX 0x1400 (  8 octets) : 0F 04 14 00 00 15 FF FF 
+     📤 TX 0x1600 (  9 octets) : 0F 05 16 00 00 00 17 FF FF 
+     📥 RX 0x1600 ( 15 octets) : 0F 0B 16 00 00 FF 14 00 08 00 00 00 32 FF FF 
+
+  --- [4. Historique Horaire 24 Heures (0x0A00)] ---
+     📤 TX 0x0A00 (  9 octets) : 0F 05 0A 00 00 00 0B FF FF 
+     📥 RX 0x0A00 ( 55 octets) : 0F 33 0A 00 00 06 00 0A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 0E 19 FF FF 
+     -> Cumul=  30 Wh | H[21..23]=0/0/14 | CS_Exp=0x29 | CS_Got=0x19 | Écart(Exp-Got)=0x10 ( 16) | Slots>0: [00]=6 [01]=10 [23]=14 
+
+  --- [5. Historique Journalier 30 Jours (0x0B00)] ---
+     📤 TX 0x0B00 (  9 octets) : 0F 05 0B 00 00 00 0C FF FF 
+     📥 RX 0x0B00 (127 octets) : 0F 7B 0B 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 2D 00 00 00 41 56 00 00 06 64 00 00 0E 00 48 FF FF 
+     -> Cumul= 130 Wh | J[27..29]=65/6/14 | CS_Exp=0x48 | CS_Got=0x48 | Écart(Exp-Got)=0x00 (  0) | Slots>0: [26]=45 [27]=65 [28]=6 [29]=14 
+
+  --- [6. Historique Mensuel 12 Mois (0x0C00)] ---
+     📤 TX 0x0C00 (  9 octets) : 0F 05 0C 00 00 00 0D FF FF 
+     📥 RX 0x0C00 ( 55 octets) : 0F 33 0C 00 00 01 CA 01 00 01 8F 00 00 00 00 00 00 01 4D 02 00 01 EE 02 00 02 40 03 00 02 27 01 00 03 73 00 00 01 01 00 00 01 3F 01 00 00 74 34 00 00 82 2E C8 FF FF 
+     -> Cumul=4516 Wh | M[10..11]=116(52%)/130(46%) | CS_Exp=0x2A | CS_Got=0xC8 | Écart(Exp-Got)=0x62 ( 98) | Slots>0: [00]=458(1%) [01]=399(0%) [03]=333(2%) [04]=494(2%) [05]=576(3%) [06]=551(1%) [07]=883(0%) [08]=257(0%) [09]=319(1%) [10]=116(52%) [11]=130(46%) 
+
+  --- [7. Sonde Timer Fantôme (0x0800 / 0x0900) pour lecture de la RTC interne] ---
+
+  🕵️‍♂️ [SONDE CIBLE 31/12/2026] Cible Timer = 31/12/2026 à 23:59:59
+     📤 TX 0x0800 ( 16 octets) : 0F 0C 08 00 01 3B 3B 17 1F 0C 1A 00 00 DC FF FF 
+     📥 RX 0x0800 (  8 octets) : 0F 04 08 00 00 09 FF FF 
+     📤 TX 0x0900 (  9 octets) : 0F 05 09 00 00 00 0A FF FF 
+     📥 RX 0x0900 ( 18 octets) : 0F 0E 09 00 01 3B 3B 17 1F 0C 1A 2B EE 6B 00 61 FF FF 
+     📤 TX 0x0800 ( 16 octets) : 0F 0C 08 00 00 00 00 00 00 00 00 00 00 09 FF FF 
+     📥 RX 0x0800 (  8 octets) : 0F 04 08 00 00 09 FF FF 
+     ⏰ RTC DÉDUITE : 28/11/2026 16:15:16 (Δt=0x2BEE6B = 2879083 s)
+
+  ⏲️ [TEST PERSISTANCE TIMER UTILISATEUR] Armement d'un Timer ACTIF (23:00:00) laissé actif avant la coupure :
+     📤 TX 0x0800 ( 16 octets) : 0F 0C 08 00 01 00 00 17 1C 0B 1A 00 00 62 FF FF 
+     📥 RX 0x0800 (  8 octets) : 0F 04 08 00 00 09 FF FF 
+     📤 TX 0x0900 (  9 octets) : 0F 05 09 00 00 00 0A FF FF 
+     📥 RX 0x0900 ( 18 octets) : 0F 0E 09 00 01 00 00 17 1C 0B 1A 00 5E DB 00 9C FF FF 
+
+  [BLE] 🔌 Déconnecté proprement de Vélo (Timer utilisateur laissé ACTIF).
+
+************************************************************************************************************************
+ ⚡ ACTION REQUISE : DÉBRANCHEZ LA PRISE VÉLO DU SECTEUR PENDANT ~10 SECONDES, PUIS REBRANCHEZ-LA !
+************************************************************************************************************************
+
+  [ÉTAPE 2 : PRISE VÉLO REBRANCHÉE APRÈS COUPURE SECTEUR -> LANCER AUSCULTATION À FROID] Appuyez sur BOOT (GPIO 0) ou envoyez 'Entrée'...
+>>> Action validée (Bouton BOOT) !
+  [BLE] Tentative de connexion #1 à Vélo (a3:00:00:00:45:25)...
+  ✅ Connecté | MTU = 160 octets | RSSI = -83 dBm
+  🔹 GAP Device Name (0x2A00) : "Wattmètre mobile"
+  🔑 Authentification 32 bits (0x1700) :
+     📤 TX 0x1700 ( 16 octets) : 0F 0C 17 00 00 00 00 00 00 00 00 00 00 18 FF FF 
+     📥 RX 0x1700 ( 10 octets) : 0F 06 17 00 00 00 00 18 FF FF 
+
+========================================================================================================================
+ 📸 CLICHÉ #2 : État à Froid APRÈS Coupure Secteur (SANS setDat
+========================================================================================================================
+  🔹 0xFFF1 (Avant Auth) : 56 4F 4C 43 46 54 04 00 00 00 00 01 1E 03 00 
+  🔹 0xFFF1 (Après Auth) : 56 4F 4C 43 46 54 04 00 00 00 00 01 1E 03 00 
+
+  --- [1. Télémétrie Live 0x0400] ---
+     📤 TX 0x0400 (  9 octets) : 0F 05 04 00 00 00 05 FF FF 
+     📥 RX 0x0400 ( 19 octets) : 0F 0F 04 00 01 0D 74 F8 E2 10 3E 31 01 00 00 00 85 1B 81 
+     -> Relais=ON | P=881.91 W | U=226 V | I=4.158 A | F=49 Hz | Octets[12..13]=0x0100 | totalKwhWh=34075 Wh | CS(Exp/Got)=0x81/0x81
+
+  --- [2. Paramètres 0x1000 (requestSettings)] ---
+     📤 TX 0x1000 (  9 octets) : 0F 05 10 00 00 00 11 FF FF 
+     📥 RX 0x1000 ( 20 octets) : 0F 0E 10 00 01 12 0D 05 28 01 68 01 00 0E 60 36 FF FF 00 00 
+
+  --- [3. Statut Timer à Froid 0x0900 (SANS armement préalable)] ---
+     📤 TX 0x0900 (  9 octets) : 0F 05 09 00 00 00 0A FF FF 
+     📥 RX 0x0900 ( 18 octets) : 0F 0E 09 00 00 00 00 00 00 00 30 00 00 00 00 3A FF FF 
+     -> Action=0x00 | Écho Cible en mémoire=00/00/2048 00:00:00 | presetSeconds24b=0 s
+
+  --- [3bis. Plannings 0x1400 (Page 0) & Mode Aléatoire 0x1600] ---
+     📤 TX 0x1400 ( 10 octets) : 0F 06 14 00 00 00 00 15 FF FF 
+     📥 RX 0x1400 (  8 octets) : 0F 04 14 00 00 15 FF FF 
+     📤 TX 0x1600 (  9 octets) : 0F 05 16 00 00 00 17 FF FF 
+     📥 RX 0x1600 ( 15 octets) : 0F 0B 16 00 00 FF 14 00 08 00 00 00 32 FF FF 
+
+  --- [4. Historique Horaire 24 Heures (0x0A00)] ---
+     📤 TX 0x0A00 (  9 octets) : 0F 05 0A 00 00 00 0B FF FF 
+     📥 RX 0x0A00 ( 55 octets) : 0F 33 0A 00 00 06 00 0A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 0B FF FF 
+     -> Cumul=  16 Wh | H[21..23]=0/0/0 | CS_Exp=0x1B | CS_Got=0x0B | Écart(Exp-Got)=0x10 ( 16) | Slots>0: [00]=6 [01]=10 
+
+  --- [5. Historique Journalier 30 Jours (0x0B00)] ---
+     📤 TX 0x0B00 (  9 octets) : 0F 05 0B 00 00 00 0C FF FF 
+     📥 RX 0x0B00 (127 octets) : 0F 7B 0B 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 2D 00 00 00 41 56 00 00 06 64 00 00 00 00 3A FF FF 
+     -> Cumul= 116 Wh | J[27..29]=65/6/0 | CS_Exp=0x3A | CS_Got=0x3A | Écart(Exp-Got)=0x00 (  0) | Slots>0: [26]=45 [27]=65 [28]=6 
+
+  --- [6. Historique Mensuel 12 Mois (0x0C00)] ---
+     📤 TX 0x0C00 (  9 octets) : 0F 05 0C 00 00 00 0D FF FF 
+     📥 RX 0x0C00 ( 55 octets) : 0F 33 0C 00 00 01 CA 01 00 01 8F 00 00 00 00 00 00 01 4D 02 00 01 EE 02 00 02 40 03 00 02 27 01 00 03 73 00 00 01 01 00 00 01 3F 01 00 00 74 34 00 00 00 00 98 FF FF 
+     -> Cumul=4386 Wh | M[10..11]=116(52%)/0(0%) | CS_Exp=0x7A | CS_Got=0x98 | Écart(Exp-Got)=0xE2 (226) | Slots>0: [00]=458(1%) [01]=399(0%) [03]=333(2%) [04]=494(2%) [05]=576(3%) [06]=551(1%) [07]=883(0%) [08]=257(0%) [09]=319(1%) [10]=116(52%) 
+
+  --- [7. Sonde Timer Fantôme (0x0800 / 0x0900) pour lecture de la RTC interne] ---
+
+  🕵️‍♂️ [SONDE CIBLE 31/12/2026] Cible Timer = 31/12/2026 à 23:59:59
+     📤 TX 0x0800 ( 16 octets) : 0F 0C 08 00 01 3B 3B 17 1F 0C 1A 00 00 DC FF FF 
+     📥 RX 0x0800 (  8 octets) : 0F 04 08 00 00 09 FF FF 
+     📤 TX 0x0900 (  9 octets) : 0F 05 09 00 00 00 0A FF FF 
+     📥 RX 0x0900 ( 18 octets) : 0F 0E 09 00 01 3B 3B 17 1F 0C 1A 2B 0B 7F 00 92 FF FF 
+     📤 TX 0x0800 ( 16 octets) : 0F 0C 08 00 00 00 00 00 00 00 00 00 00 09 FF FF 
+     📥 RX 0x0800 (  8 octets) : 0F 04 08 00 00 09 FF FF 
+     ⏰ RTC DÉDUITE : 01/01/2020 00:00:00 [RESET USINE !] (Δt24b=0x2B0B7F)
+
+  🕵️‍♂️ [SONDE DIRECTE CIBLE 02/01/2020 (Vérif RTC=01/01/2020)] Cible Timer = 02/01/2020 à 23:59:59
+     📤 TX 0x0800 ( 16 octets) : 0F 0C 08 00 01 3B 3B 17 02 01 14 00 00 AE FF FF 
+     📥 RX 0x0800 (  8 octets) : 0F 04 08 00 00 09 FF FF 
+     📤 TX 0x0900 (  9 octets) : 0F 05 09 00 00 00 0A FF FF 
+     📥 RX 0x0900 ( 18 octets) : 0F 0E 09 00 01 3B 3B 17 02 01 14 02 A2 FF 00 52 FF FF 
+     📤 TX 0x0800 ( 16 octets) : 0F 0C 08 00 00 00 00 00 00 00 00 00 00 09 FF FF 
+     📥 RX 0x0800 (  8 octets) : 0F 04 08 00 00 09 FF FF 
+     ⏰ RTC DÉDUITE : 01/01/2020 00:00:00 (Δt=0x02A2FF = 172799 s)
+
+  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  🔄 [POINT a : REMISE À L'HEURE POST-COUPURE] Injection setDateTime(28/11/2026 16:16:00) + Suivi 30s sous charge...
+     📤 TX 0x0100 ( 16 octets) : 0F 0C 01 00 00 10 10 1C 0B 07 EA 00 00 3A FF FF 
+     📥 RX 0x0100 (  8 octets) : 0F 04 01 00 00 02 FF FF 
+     [+ 5s] P=884.3W | 0400=34075 | H[21..23]=0/0/1 | J[27..29]=65/6/1 | M[10..11]=116(52%)/117(52%)
+     [+10s] P=882.9W | 0400=34075 | H[21..23]=0/0/2 | J[27..29]=65/6/2 | M[10..11]=116(52%)/118(51%)
+     [+15s] P=881.7W | 0400=34075 | H[21..23]=0/0/3 | J[27..29]=65/6/3 | M[10..11]=116(52%)/119(51%)
+     [+20s] P=888.4W | 0400=34075 | H[21..23]=0/0/4 | J[27..29]=65/6/4 | M[10..11]=116(52%)/120(50%)
+     [+25s] P=898.7W | 0400=34075 | H[21..23]=0/0/6 | J[27..29]=65/6/6 | M[10..11]=116(52%)/122(50%)
+     [+30s] P=899.3W | 0400=34075 | H[21..23]=0/0/7 | J[27..29]=65/6/7 | M[10..11]=116(52%)/123(49%)
+
+========================================================================================================================
+ 📸 CLICHÉ #3 : APRÈS Remise à l'heure + 30s sous charge
+========================================================================================================================
+  🔹 0xFFF1 (Avant Auth) : 56 4F 4C 43 46 54 04 00 00 00 00 01 1E 03 00 
+  🔹 0xFFF1 (Après Auth) : 56 4F 4C 43 46 54 04 00 00 00 00 01 1E 03 00 
+
+  --- [1. Télémétrie Live 0x0400] ---
+     📤 TX 0x0400 (  9 octets) : 0F 05 04 00 00 00 05 FF FF 
+     📥 RX 0x0400 ( 19 octets) : 0F 0F 04 00 01 0D BA 14 E4 10 59 31 01 00 00 00 85 1B 00 
+     -> Relais=ON | P=899.60 W | U=228 V | I=4.185 A | F=49 Hz | Octets[12..13]=0x0100 | totalKwhWh=34075 Wh | CS(Exp/Got)=0x00/0x00
+
+  --- [2. Paramètres 0x1000 (requestSettings)] ---
+     📤 TX 0x1000 (  9 octets) : 0F 05 10 00 00 00 11 FF FF 
+     📥 RX 0x1000 ( 20 octets) : 0F 0E 10 00 01 12 0D 05 28 01 68 01 00 0E 60 36 FF FF 00 00 
+
+  --- [3. Statut Timer à Froid 0x0900 (SANS armement préalable)] ---
+     📤 TX 0x0900 (  9 octets) : 0F 05 09 00 00 00 0A FF FF 
+     📥 RX 0x0900 ( 18 octets) : 0F 0E 09 00 00 3B 3B 17 02 01 14 00 00 00 00 AE FF FF 
+     -> Action=0x00 | Écho Cible en mémoire=02/01/2020 23:59:59 | presetSeconds24b=0 s
+
+  --- [3bis. Plannings 0x1400 (Page 0) & Mode Aléatoire 0x1600] ---
+     📤 TX 0x1400 ( 10 octets) : 0F 06 14 00 00 00 00 15 FF FF 
+     📥 RX 0x1400 (  8 octets) : 0F 04 14 00 00 15 FF FF 
+     📤 TX 0x1600 (  9 octets) : 0F 05 16 00 00 00 17 FF FF 
+     📥 RX 0x1600 ( 15 octets) : 0F 0B 16 00 00 FF 14 00 08 00 00 00 32 FF FF 
+
+  --- [4. Historique Horaire 24 Heures (0x0A00)] ---
+     📤 TX 0x0A00 (  9 octets) : 0F 05 0A 00 00 00 0B FF FF 
+     📥 RX 0x0A00 ( 55 octets) : 0F 33 0A 00 00 06 00 0A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 07 12 FF FF 
+     -> Cumul=  23 Wh | H[21..23]=0/0/7 | CS_Exp=0x22 | CS_Got=0x12 | Écart(Exp-Got)=0x10 ( 16) | Slots>0: [00]=6 [01]=10 [23]=7 
+
+  --- [5. Historique Journalier 30 Jours (0x0B00)] ---
+     📤 TX 0x0B00 (  9 octets) : 0F 05 0B 00 00 00 0C FF FF 
+     📥 RX 0x0B00 (127 octets) : 0F 7B 0B 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 2D 00 00 00 41 56 00 00 06 64 00 00 07 00 41 FF FF 
+     -> Cumul= 123 Wh | J[27..29]=65/6/7 | CS_Exp=0x41 | CS_Got=0x41 | Écart(Exp-Got)=0x00 (  0) | Slots>0: [26]=45 [27]=65 [28]=6 [29]=7 
+
+  --- [6. Historique Mensuel 12 Mois (0x0C00)] ---
+     📤 TX 0x0C00 (  9 octets) : 0F 05 0C 00 00 00 0D FF FF 
+     📥 RX 0x0C00 ( 55 octets) : 0F 33 0C 00 00 01 CA 01 00 01 8F 00 00 00 00 00 00 01 4D 02 00 01 EE 02 00 02 40 03 00 02 27 01 00 03 73 00 00 01 01 00 00 01 3F 01 00 00 74 34 00 00 7B 31 C4 FF FF 
+     -> Cumul=4509 Wh | M[10..11]=116(52%)/123(49%) | CS_Exp=0x26 | CS_Got=0xC4 | Écart(Exp-Got)=0x62 ( 98) | Slots>0: [00]=458(1%) [01]=399(0%) [03]=333(2%) [04]=494(2%) [05]=576(3%) [06]=551(1%) [07]=883(0%) [08]=257(0%) [09]=319(1%) [10]=116(52%) [11]=123(49%) 
+
+  --- [7. Sonde Timer Fantôme (0x0800 / 0x0900) pour lecture de la RTC interne] ---
+
+  🕵️‍♂️ [SONDE CIBLE 31/12/2026] Cible Timer = 31/12/2026 à 23:59:59
+     📤 TX 0x0800 ( 16 octets) : 0F 0C 08 00 01 3B 3B 17 1F 0C 1A 00 00 DC FF FF 
+     📥 RX 0x0800 (  8 octets) : 0F 04 08 00 00 09 FF FF 
+     📤 TX 0x0900 (  9 octets) : 0F 05 09 00 00 00 0A FF FF 
+     📥 RX 0x0900 ( 18 octets) : 0F 0E 09 00 01 3B 3B 17 1F 0C 1A 2B EE 1D 00 13 FF FF 
+     📤 TX 0x0800 ( 16 octets) : 0F 0C 08 00 00 00 00 00 00 00 00 00 00 09 FF FF 
+     📥 RX 0x0800 (  8 octets) : 0F 04 08 00 00 09 FF FF 
+     ⏰ RTC DÉDUITE : 28/11/2026 16:16:34 (Δt=0x2BEE1D = 2879005 s)
+
+================================================================================================================================================
+ 📊 BILAN COMPARATIF EXPÉRIENCE 22 (v2) : 1. AVANT COUPURE  |  2. APRÈS COUPURE À FROID  |  3. APRÈS REMISE À L'HEURE (+30s)
+================================================================================================================================================
+ Indicateur                     | 1. AVANT Coupure (Cliché #1)        | 2. APRÈS Coupure à Froid (Cliché #2)| 3. APRÈS Remise à l'Heure +30s (#3)
+--------------------------------+-------------------------------------+-------------------------------------+------------------------------------
+ Relais / Puissance (0x0400)    | ON  /  897.04 W                     | ON  /  881.91 W                     | ON  /  899.60 W
+ Octets[12..13] de 0x0400       | 0x0100                              | 0x0100                              | 0x0100
+ totalKwhWh (0x0400[14..17])    |    34075 Wh                         |    34075 Wh                         |    34075 Wh
+ 0x0900 à froid (Act / Cible)   | act=00 02/01/2020 23:59:59          | act=00 00/00/2048 00:00:00          | act=00 02/01/2020 23:59:59
+ 0x0A00 (24h: H[21/22/23] & CS) | 0/0/14 Wh (Cum=30, CS=29/19)     | 0/0/0 Wh (Cum=16, CS=1B/0B)     | 0/0/7 Wh (Cum=23, CS=22/12)
+ 0x0B00 (30j: J[27/28/29] & CS) | 65/6/14 Wh (Cum=130, CS=48/48)    | 65/6/0 Wh (Cum=116, CS=3A/3A)    | 65/6/7 Wh (Cum=123, CS=41/41)
+ 0x0C00 (12m: M[10/11] & CS)    | 116(52%)/130(46%) (Cum=4516, CS=2A/C8) | 116(52%)/0(0%) (Cum=4386, CS=7A/98) | 116(52%)/123(49%) (Cum=4509, CS=26/C4)
+ RTC Interne (Sonde Timer 24b)  | 28/11/2026 16:15:16 (Δt=0x2BEE6B = 2879083 s) | 01/01/2020 00:00:00 [RESET USINE !] (Δt24b=0x2B0B7F) | 28/11/2026 16:16:34 (Δt=0x2BEE1D = 2879005 s)
+================================================================================================================================================
+
+[BLE] ✅ Expérience 22 (v2) terminée.
